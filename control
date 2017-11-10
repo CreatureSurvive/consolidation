@@ -1,0 +1,11 @@
+Package: com.creaturecoding.consolidation
+Replaces: me.thomasfinch.priorityhub, com.creaturecoding.priorityhub
+Name: Consolidation ALPHA
+Depends: firmware (>= 10), mobilesubstrate, preferenceloader, applist, com.creaturecoding.libcspreferences, com.creaturesurvive.libcscolorpicker
+Version: 1.0alpha4
+Architecture: iphoneos-arm
+Description: Organize and sort notifications on the LS and NC.
+Depiction: https://www.creaturecoding.com/depictions/cydia/?p=consolidation
+Maintainer: CreatureSurvive <support@creaturecoding.com>
+Author: CreatureSurvive <support@creaturecoding.com>
+Section: Tweaks

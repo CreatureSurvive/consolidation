@@ -1,0 +1,137 @@
+<?xml version=1.0 encoding=UTF-8?>
+<!DOCTYPE plist PUBLIC -//Apple//DTD PLIST 1.0//EN http://www.apple.com/DTDs/PropertyList-1.0.dtd>
+<plist version=1.0>
+	<dict>
+		<key>title</key>
+		<string>Consolidation</string>
+		<key>items</key>
+		<array>
+
+			<dict>
+				<key>cell</key>
+				<string>PSSwitchCell</string>
+				<key>label</key>
+				<string>Enabled</string>
+				<key>key</key>
+				<string>kPTCEnabled</string>
+				<key>isGroupToggle</key>
+				<true/>
+				<key>PostNotification</key>
+				<string>com.creaturecoding.consolidation.prefschanged</string>
+				<key>defaults</key>
+				<string>com.creaturecoding.consolidation</string>
+			</dict>
+
+			<dict>
+				<key>action</key>
+				<string>pushToView:</string>
+				<key>cell</key>
+				<string>PSLinkCell</string>
+				<key>pushToPlist</key>
+				<string>LockScreen</string>
+				<key>label</key>
+				<string>LockScreen</string>
+			</dict>
+
+			<dict>
+				<key>action</key>
+				<string>pushToView:</string>
+				<key>cell</key>
+				<string>PSLinkCell</string>
+				<key>pushToPlist</key>
+				<string>NotificationCenter</string>
+				<key>label</key>
+				<string>Notification Center</string>
+			</dict>
+
+			<dict>
+				<key>action</key>
+				<string>pushToView:</string>
+				<key>cell</key>
+				<string>PSLinkCell</string>
+				<key>pushToPlist</key>
+				<string>General</string>
+				<key>label</key>
+				<string>General</string>
+			</dict>
+
+			<dict>
+				<key>cell</key>
+				<string>PSGroupCell</string>
+				<key>footerText</key>
+				<string>CreatureCoding © 2017</string>
+				<key>footerAlignment</key>
+				<integer>1</integer>
+			</dict>
+
+			<dict>
+				<key>action</key>
+				<string>pushToView:</string>
+				<key>cell</key>
+				<string>PSLinkCell</string>
+				<key>pushToPlist</key>
+				<string>Support</string>
+				<key>label</key>
+				<string>Support &amp; Creator</string>
+			</dict>
+
+			<dict>
+				<key>cell</key>
+				<string>PSLinkCell</string>
+				<key>detail</key>
+				<string>CSPChangeLogController</string>
+				<key>isController</key>
+				<true/>
+				<key>label</key>
+				<string>ChangeLog</string>
+				<key>changes</key>
+				<array>
+					<dict>
+						<key>alpha 4</key>
+						<array>
+							<string>fixed enable switches not working as intended (the global enable switch is still broken)</string>
+							<string>everything is now laid out using constraints, this should fix a lot of wonky layout issues</string>
+							<string>bunch of small fixes and shuffling of the preferences</string>
+							<string>added proper depiction</string>
+							<string>tons of refactoring and tiny little optimizations</string>
+						</array>
+						<key>alpha 3</key>
+						<array>
+							<string>most of the LockScreen portion of the tweak has been rewritten</string>
+							<string>the bug causing password prompt to appear should now be completely fixed</string>
+							<string>all notifications will now have icons (any missing icons will use the small image from the notification itself, i'm working on finding larger versions.) for now some icons will look blurry</string>
+							<string>added option to send all notifications to the LockScreen even while unlocked</string>
+							<string>added option to prevent notifications from auto-dismissing such as when you launch an app all its notifications wont be cleared</string>
+							<string>improved notification area resizing and positioning, it should no longer break scrolling</string>
+							<string>show all when not selected is not broken, it just doesn't work when privacyMode is enabled</string>
+							<string>privacy mode is mostly fixed, though it will still flash on screen for a brief moment when receiving notifications</string>
+							<string>further improved performance of pull to clear</string>
+						</array>
+					</dict>
+					<dict>
+						<key>alpha 2</key>
+						<array>
+							<string>converted the project to ARC (no more double pointers)</string>
+							<string>fixed password prompt nagging</string>
+							<string>added privacy mode back in (requires Deselect on Unlock to be enabled in order to work correctly) will improve later</string>
+							<string>added vertical adjustment options for notification area</string>
+							<string>greatly improved handling of pull to clear (i did notice it would not always clear notifications from Extender Reloaded) let me know if your having isses with this</string>
+							<string>major refactoring throughout the project</string>
+							<string>added option to disable hint text ('press/slide to open' text on notifications)</string>
+							<string>added option to color the pull to clear (x)</string>
+							<string>added option to color app selection color</string>
+							<string>libCSColorPicker is now used in this project, and is added as a dependency. this should fix the preference bundle errors that some of you were having</string>
+						</array>
+					</dict>
+					<dict>
+						<key>alpha 1</key>
+						<array>
+							<string>initial release</string>
+						</array>
+					</dict>
+				</array>
+			</dict>
+
+		</array>
+	</dict>
+</plist>

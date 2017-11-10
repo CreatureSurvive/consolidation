@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>globalEnabled</key>
+        <true/>
+        <!-- LockScreen -->
+        <key>enabled</key>
+        <true/>
+        <key>collapseOnLock</key>
+        <true/>
+        <key>enablePullToClear</key>
+        <true/>
+        <key>privacyMode</key>
+        <true/>
+        <key>iconLocation</key>
+        <real>0</real>
+        <key>iconSize</key>
+        <real>1</real>
+        <key>numberStyle</key>
+        <real>2</real>
+        <key>verticalAdjustmentTop</key>
+        <real>0</real>
+        <key>verticalAdjustmentBottom</key>
+        <real>0</real>
+        <key>showAllWhenNotSelected</key>
+        <real>0</real>
+        <key>disableHintText</key>
+        <false/>
+        <key>pullToClearColor</key>
+        <string>FFFFFF:1.000000</string>
+        <key>selectionColor</key>
+        <string>FFFFFF:0.600000</string>
+        <key>verticalAdjustmentEnabled</key>
+        <false/>
+        <key>alwaysSendToLockscreen</key>
+        <false/>
+        <key>disableAutomaticDismiss</key>
+        <false/>
+        <!-- NC -->
+        <key>ncEnabled</key>
+        <true/>
+        <key>ncCollapseOnLock</key>
+        <true/>
+        <key>ncEnablePullToClear</key>
+        <true/>
+        <key>ncIconLocation</key>
+        <real>0</real>
+        <key>ncIconSize</key>
+        <real>1</real>
+        <key>ncNumberStyle</key>
+        <real>2</real>
+        <key>ncShowAllWhenNotSelected</key>
+        <real>0</real>
+        <key>ncPullToClearColor</key>
+        <string>FFFFFF:1.000000</string>
+        <key>ncSelectionColor</key>
+        <string>FFFFFF:0.600000</string>
+    </dict>
+</plist>
