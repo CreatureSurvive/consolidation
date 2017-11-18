@@ -8,7 +8,7 @@ SOURCE_FILES=$(wildcard tweak/*.m tweak/*.mm tweak/*.x tweak/*.xm)
 
 TWEAK_NAME = Consolidation
 Consolidation_FILES = $(SOURCE_FILES)
-Consolidation_FRAMEWORKS = UIKit CoreGraphics CoreTelephony QuartzCore AudioToolbox
+Consolidation_FRAMEWORKS = UIKit CoreFoundation CoreGraphics CoreTelephony QuartzCore AudioToolbox
 Consolidation_PRIVATE_FRAMEWORKS = BulletinBoard
 Consolidation_LIBRARIES = applist
 Consolidation_LDFLAGS += -lCSPreferencesProvider

@@ -8,6 +8,7 @@
 //
 
 %hook NCNotificationListCollectionViewFlowLayout
+%property(nonatomic, retain) NSDictionary *layoutInfo;
 
 %new - (BOOL)isLockscreenLayout {
     return [self.collectionView.delegate isKindOfClass:%c(NCNotificationPriorityListViewController)];
@@ -39,16 +40,17 @@
     NCNotificationListViewController *controller = (NCNotificationListViewController *)self.collectionView.delegate;
     for (UICollectionViewLayoutAttributes *attribute in attributes) {
 
-        // if (attribute.representedElementCategory != UICollectionElementCategoryCell)
-        //     continue;
+        if (attribute.representedElementCategory != UICollectionElementCategoryCell) continue;
 
-        if (![controller shouldShowNotificationAtIndexPath:attribute.indexPath]) {
-            attribute.hidden = YES;
-            // attribute.size = CGSizeMake(0.1, 0.1);// does not seam to work with zero or 1 as size, this setting is ignored?
-            // attribute.frame = CGRectMake(0.1, 0.1);// does not seam to work with zero or 1 as size, this setting is ignored?
+        if ([controller shouldShowNotificationAtIndexPath:attribute.indexPath]) {
+            attribute.frame = CGRectMake(
+                controller.collectionView.center.x - attribute.size.width / 2,
+                attribute.frame.origin.y + 8,
+                attribute.size.width,
+                attribute.size.height - 8
+                );
         } else {
-            attribute.center = CGPointMake(controller.collectionView.center.x, attribute.center.y);
-            attribute.frame = CGRectMake(attribute.frame.origin.x, attribute.frame.origin.y + 8, attribute.size.width, attribute.size.height - 8);
+            attribute.hidden = YES;
         }
     }
     return attributes;

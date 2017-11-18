@@ -2,13 +2,24 @@
 @interface SBSearchEtceteraLayoutContentView : UIView
 @end
 
+@interface SBSearchEtceteraLayoutView : UIView
+@property (getter = _pageControl, nonatomic, retain, readonly) UIPageControl *pageControl;
+@end
+
+@interface SBNotificationSeparatorView : UIView
+@end
+
 @interface SBSearchEtceteraNotificationsLayoutContentView : SBSearchEtceteraLayoutContentView
 @end
 
 @interface NCNotificationListContainerViewController : UIViewController
 @end
 
+@interface SBNotificationCenterViewController : UIViewController
+@end
+
 @interface NCNotificationListCollectionViewFlowLayout : UICollectionViewFlowLayout
+@property(nonatomic, retain) NSDictionary *layoutInformation;
 - (BOOL)isLockscreenLayout;
 - (BOOL)isConsolidationEnabledForLayout;
 @end
@@ -61,13 +72,16 @@
 @end
 
 @interface NCNotificationRequest : NSObject
+@property (nonatomic, copy, readonly) NSString *sectionIdentifier;
 @property (nonatomic, copy, readonly) NSSet *requestDestinations;
 @property (nonatomic, readonly) NCNotificationSound *sound;
 @property (nonatomic, readonly) NCNotificationAction *clearAction;
 @property (nonatomic, readonly) NCNotificationAction *closeAction;
 @property (nonatomic, readonly) NCNotificationAction *defaultAction;
 @property (nonatomic, readonly) NCNotificationContent *content;
-- (NSString *)sectionIdentifier;
+@end
+
+@interface NCMutableNotificationRequest : NCNotificationRequest
 @end
 
 @interface NCNotificationViewController : UIViewController
@@ -100,6 +114,7 @@
 //new
 @property(nonatomic, retain) NSString *selectedAppID;
 @property(nonatomic, retain) NSMutableArray *sellectedNotifications;
+@property(nonatomic, retain) NSMutableDictionary *recentlyClearedNotifications;
 @property (assign, nonatomic) id<NCNotificationListViewControllerDestinationDelegate> destinationDelegate;
 @property (assign, nonatomic) NCNotificationListCell *cellWithRevealedActions;
 
@@ -108,6 +123,7 @@
 - (NSString *)notificationIdentifierAtIndex:(NSUInteger)index;
 - (NSUInteger)numNotifications;
 - (NCNotificationRequest *)notificationRequestAtIndexPath:(NSIndexPath *)path;
+- (NSIndexPath *)indexPathForNotificationRequest:(NCNotificationRequest *)request;
 - (BOOL)shouldShowNotificationAtIndexPath:(NSIndexPath *)indexPath;
 - (void)removeNotification:(NCNotificationRequest *)request;
 - (void)insertOrModifyNotification:(NCNotificationRequest *)request;
@@ -115,6 +131,7 @@
 - (bool)collectionView:(id)arg1 canMoveItemAtIndexPath:(id)arg2;
 - (void)moveItemAtIndexPath:(NSIndexPath *)path toIndexPath:(NSIndexPath *)toPath;
 - (void)removeNotificationRequest:(NCNotificationRequest *)request forCoalescedNotification:(id)notification;
+- (void)updateConsolidationConstraintsAndLayout:(BOOL)layout;
 - (NSArray *)allIndexPaths;
 - (void)removeNotifications;
 - (void)setupBlocks;

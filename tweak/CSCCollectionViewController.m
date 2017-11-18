@@ -1,17 +1,22 @@
 #import "CSCCollectionViewController.h"
+#import "CSCIconProvider.h"
+#import "CSCFeedbackGenerator.h"
 
 @interface Request : NSObject
+@property(retain, nonatomic) NSIndexPath *index;
 @property(retain, nonatomic) NSString *identifier;
 @property(assign, nonatomic) NSInteger count;
 @property(retain, nonatomic) UIImage *icon;
+@property(retain, nonatomic) NSDate *timestamp;
 @end
 
 @implementation Request
 
-- (id)requestWithIdentifier:(NSString *)identifier count:(NSInteger)count icon:(UIImage *)icon {
+- (id)requestWithIdentifier:(NSString *)identifier count:(NSInteger)count timestamp:(NSDate *)timestamp icon:(UIImage *)icon {
     if (self == [super init]) {
         self.identifier = identifier;
         self.count = count;
+        self.timestamp = timestamp;
         self.icon = icon;
     }
     return self;
@@ -19,8 +24,13 @@
 
 @end
 
-@implementation CSCCollectionViewController
+@implementation CSCCollectionViewController {
+    CSCIconProvider *_iconProvider;
+}
 
+// - (void)dealloc {
+//     [[NSNotificationCenter defaultCenter] removeObserver:self];
+// }
 
 #pragma mark - UIViewController
 
@@ -48,6 +58,10 @@
     [_collectionView setShowsVerticalScrollIndicator:NO];
 
     [self.view addSubview:_collectionView];
+
+    _iconProvider = [CSCIconProvider sharedProvider];
+
+    // [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(setCollectionStyle:) name:@"kCSCPrefsChanged" object:@(self.collectionStyle)];
 }
 
 #pragma mark - UICollectionView
@@ -56,9 +70,16 @@
     return _indexedRequests.count;
 }
 
-// The cell that is returned must be retrieved from a call to -dequeueReusableCellWithReuseIdentifier:forIndexPath:
 - (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
     CSCCollectionViewCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"notificationSectionCell" forIndexPath:indexPath];
+    [cell setCollectionStyle:self.collectionStyle];
+
+    if (_selectedIndexPath != indexPath) {
+        [_collectionView deselectItemAtIndexPath:indexPath animated:NO];
+    } else {
+        [_collectionView selectItemAtIndexPath:indexPath animated:NO scrollPosition:UICollectionViewScrollPositionNone];
+        self.setCurrentIdentifier([self requestAtIndexPath:_selectedIndexPath].identifier);
+    }
 
     Request *request = [self requestAtIndexPath:indexPath];
     [cell setCount:@(request.count).stringValue];
@@ -68,6 +89,16 @@
 
 #pragma mark - UICollectionViewDelegate
 
+- (void)collectionView:(UICollectionView *)collectionView willDisplayCell:(UICollectionViewCell *)cell forItemAtIndexPath:(NSIndexPath *)indexPath {
+    [(CSCCollectionViewCell *) cell setSelected:_selectedIndexPath == indexPath];
+    [(CSCCollectionViewCell *) cell setVisible:YES];
+}
+
+- (void)collectionView:(UICollectionView *)collectionView didEndDisplayingCell:(UICollectionViewCell *)cell forItemAtIndexPath:(NSIndexPath *)indexPath {
+    [(CSCCollectionViewCell *) cell setVisible:NO];
+    [(CSCCollectionViewCell *) cell setSelected:_selectedIndexPath == indexPath];
+}
+
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
     NSArray *indexPaths = collectionView.indexPathsForSelectedItems;
     _selectedIndexPath = indexPath;
@@ -76,6 +107,7 @@
         if ([otherIndexPath isEqual:indexPath]) continue;
         [collectionView deselectItemAtIndexPath:otherIndexPath animated:NO];
     }
+    [self playFeedbackIfNecessary];
 }
 
 - (void)collectionView:(UICollectionView *)collectionView didDeselectItemAtIndexPath:(NSIndexPath *)indexPath {
@@ -107,12 +139,23 @@
     return [_indexedRequests objectAtIndex:indexPath.row];
 }
 
+- (NSIndexPath *)indexPathForIdentifier:(NSString *)identifier {
+    NSInteger row = 0;
+    NSIndexPath *index;
+    for (Request *request in _indexedRequests) {
+        if ([request.identifier isEqualToString:identifier]) {
+            index = [NSIndexPath indexPathForRow:row inSection:0];
+        }
+    }
+    return index;
+}
+
 - (NSString *)countForCellAtIndexPath:(NSIndexPath *)indexPath {
     return @([self requestAtIndexPath:indexPath].count).stringValue;
 }
 
 - (UIImage *)iconForCellAtIndexPath:(NSIndexPath *)indexPath {
-    return self.iconForIdentifier([self requestAtIndexPath:indexPath].identifier);
+    return [_iconProvider iconForBundleIdentifier:[self requestAtIndexPath:indexPath].identifier];
 }
 
 - (void)setIndexedRequests:(NSOrderedSet *)requests {
@@ -126,28 +169,88 @@
     [_collectionView.collectionViewLayout invalidateLayout];
 }
 
+- (void)setCollectionStyle:(CSCCollectionStyle)style {
+    _collectionStyle = style;
+    for (CSCCollectionViewCell *cell in [_collectionView visibleCells]) {
+        [cell setCollectionStyle:self.collectionStyle];
+    }
+}
+
 - (void)updateContent {
     NSArray *allNotifications = self.allNotifications();
     NSMutableDictionary *contentTable = [NSMutableDictionary new];
+    NSString *identifier;
+    NSDate *timestamp;
 
     for (id object in allNotifications) {
-        NSString *identifier = (NSString *)[object performSelector:@selector(sectionIdentifier)];
+        identifier = (NSString *)[object performSelector:@selector(sectionIdentifier)];
+        timestamp = (NSDate *)[object performSelector:@selector(timestamp)];
         NSInteger count = 1;
 
         if (contentTable[identifier]) {
-            count = [(Request *) contentTable[identifier] count] + 1;
+            Request *request = (Request *)contentTable[identifier];
+            if ([request.timestamp compare:request.timestamp] == NSOrderedDescending) timestamp = request.timestamp;
+            count = request.count + 1;
         }
 
-        Request *request = [[Request alloc] requestWithIdentifier:identifier count:count icon:self.iconForIdentifier(identifier)];
-
+        Request *request = [[Request alloc] requestWithIdentifier:identifier count:count timestamp:timestamp icon:[_iconProvider iconForBundleIdentifier:identifier]];
         [contentTable setObject:request forKey:identifier];
     }
 
-    // NSMutableArray *requests = [contentTable.allValues mutableCopy];
-    // [requests sortUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"identifier" ascending:YES]]];
+    if (contentTable.count > 1) {
+        identifier = @"-showAll";
+        Request *request = [[Request alloc] requestWithIdentifier:identifier count:allNotifications.count timestamp:[NSDate date] icon:[_iconProvider iconForBundleIdentifier:identifier]];
+        [contentTable setObject:request forKey:identifier];
+    }
 
-    NSOrderedSet *orderedRequests = [NSOrderedSet orderedSetWithArray:contentTable.allValues];
+    NSMutableArray *requests = [contentTable.allValues mutableCopy];
+    [requests sortUsingDescriptors:@[[NSSortDescriptor sortDescriptorWithKey:@"timestamp" ascending:NO]]];
+
+    NSOrderedSet *orderedRequests = [NSOrderedSet orderedSetWithArray:requests];
     [self setIndexedRequests:orderedRequests];
+}
+
+- (void)applyIndexPathsToRequests {
+    NSInteger row = 0;
+    for (Request *request in _indexedRequests) {
+        request.index = [NSIndexPath indexPathForRow:row inSection:0];
+        row++;
+    }
+}
+
+- (void)selectItemWithIdentifier:(NSString *)identifier animated:(BOOL)animated {
+    NSIndexPath *index = [self indexPathForIdentifier:identifier];
+    if (index) {
+        [_collectionView selectItemAtIndexPath:index animated:animated scrollPosition:UICollectionViewScrollPositionCenteredHorizontally];
+        _selectedIndexPath = index;
+        self.setCurrentIdentifier([self requestAtIndexPath:index].identifier);
+    } else {
+        [_collectionView deselectItemAtIndexPath:_selectedIndexPath animated:animated];
+        _selectedIndexPath = nil;
+        self.setCurrentIdentifier(nil);
+    }
+}
+
+- (void)updateContentAndSelectItemWithIdentifier:(NSString *)identifier animated:(BOOL)animated {
+    [self updateContent];
+    [self selectItemWithIdentifier:identifier animated:animated];
+}
+
+- (void)updateVisibleCellsAnimated:(BOOL)animated {
+    for (CSCCollectionViewCell *cell in [_collectionView visibleCells]) {
+        [cell applyChangesAnimated:animated];
+    }
+}
+
+- (void)playFeedbackIfNecessary {
+
+    Class feedbackClass = NSClassFromString(@"UISelectionFeedbackGenerator");
+    if (feedbackClass) {
+        UISelectionFeedbackGenerator *generator = [[NSClassFromString(@"UISelectionFeedbackGenerator") alloc] init];
+        [generator performSelector:@selector(prepare)];
+        [generator performSelector:@selector(selectionChanged)];
+        generator = nil;
+    }
 }
 
 @end

@@ -52,11 +52,31 @@
         // ─────────────────────────────────────────────────────────────────
         // instanciate our provider with the values we set above. now we can
         // access our prefs anywhere in our tweak with a call of
-        // [PTCProvider sharedProvider]
+        // [CSCProvider sharedProvider]
         // ─────────────────────────────────────────────────────────────────
-        sharedProvider = [[CSPreferencesProvider alloc] initWithTweakID:tweakId defaultsPath:defaultsPath postNotification:prefsNotification notificationCallback:nil];
+        sharedProvider = [[CSPreferencesProvider alloc] initWithTweakID:tweakId defaultsPath:defaultsPath postNotification:prefsNotification notificationCallback:^void (CSPreferencesProvider *provider) {
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"kCSCPrefsChanged" object:nil userInfo:nil];
+        }];
     });
     return sharedProvider;
+}
+
++ (BOOL)tweakWithDylibNameInstalledAndEnabled:(NSString *)dylib plistName:(NSString *)plist enabledKey:(NSString *)key {
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSString *dylibPath = [NSString stringWithFormat:@"/Library/MobileSubstrate/DynamicLibraries/%@.dylib", dylib];
+
+    // if the dylib is not found the tweak is not installed
+    if (![fileManager fileExistsAtPath:dylibPath]) return NO;
+
+    NSString *prefsPath = [NSString stringWithFormat:@"/var/mobile/Library/Preferences/%@.plist", plist];
+
+    // if no preferences are found assume the tweak is enabled by default
+    if (![fileManager fileExistsAtPath:prefsPath]) return YES;
+
+    NSDictionary *preferences = [NSDictionary dictionaryWithContentsOfFile:prefsPath];
+
+    // return the value for the tweaks enabled key
+    return [preferences[key] boolValue];
 }
 
 @end

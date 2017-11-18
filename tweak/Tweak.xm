@@ -3,24 +3,21 @@
 #include <AppList/AppList.h>
 #import "substrate.h"
 #import "Headers.h"
-#import "PHContainerView.h"
 #import "PHPullToClearView.h"
 #import "CSCProvider.h"
 #import "CSCCollectionViewController.h"
+#import "CSCIconProvider.h"
 
 #define prefs [CSCProvider sharedProvider]
 #define IN_LS [self isKindOfClass:%c(NCNotificationPriorityListViewController)]
 #define ENABLED ((IN_LS && [prefs boolForKey:@"enabled"]) || (!IN_LS && [prefs boolForKey:@"ncEnabled"]))
 
-PHContainerView *lsPhContainerView = nil;
-PHContainerView *ncPhContainerView = nil;
 PHPullToClearView *lsPullToClearView = nil;
 PHPullToClearView *ncPullToClearView = nil;
 NCNotificationPriorityListViewController *lsViewController = nil;
 NCNotificationSectionListViewController *ncViewController = nil;
 CSCCollectionViewController *lsIconCollection = nil;
 CSCCollectionViewController *ncIconCollection = nil;
-NSMutableDictionary *iconCache = nil;
 
 CGSize appViewSize(BOOL lockscreen) {
     if ((lockscreen && ![prefs boolForKey:@"enabled"]) || (!lockscreen && ![prefs boolForKey:@"ncEnabled"]))
@@ -32,40 +29,22 @@ CGSize appViewSize(BOOL lockscreen) {
     switch (iconSize) {
         default:
         case 0:
-            width = 40;
+            width = 30;
             break;
         case 1:
-            width = 53;
+            width = 40;
             break;
         case 2:
-            width = 63;
+            width = 50;
             break;
         case 3:
             width = (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) ? 106 : 84;
             break;
     }
 
-    BOOL numberStyleBelow = (lockscreen) ? ([prefs intForKey:@"numberStyle"] == 1) : ([prefs intForKey:@"ncNumberStyle"] == 1);
-    CGFloat height = (numberStyleBelow) ? width * 1.45 : width;
+    BOOL numberStyleBelow = lockscreen ? [prefs intForKey:@"numberStyle"] == 1 : [prefs boolForKey:@"ncNumberStyle"] == 1;
+    CGFloat height = numberStyleBelow ? width * 1.5 : width;
     return CGSizeMake(width, height);
-}
-
-UIImage *iconForIdentifier(NSString *identifier) {
-    if ([identifier isEqualToString:@"com.apple.DuetHeuristic-BM"]) {
-        return [UIImage imageNamed:@"BatteryIcon" inBundle:[NSBundle bundleWithPath:@"/System/Library/PrivateFrameworks/DuetHeuristics.framework"] compatibleWithTraitCollection:nil];
-    }
-
-    UIImage *icon = [[ALApplicationList sharedApplicationList] iconOfSize:ALApplicationIconSizeLarge forDisplayIdentifier:identifier];
-
-    if (!icon) {
-        // better than nothing 20x20 icon from the request
-        icon = iconCache[identifier];
-    }
-
-    return icon;
-
-    // Apple 2FA identifier: com.apple.springboard.SBUserNotificationAlert
-    // Low power mode identifier (maybe): com.apple.DuetHeuristic-BM
 }
 
 //
@@ -88,12 +67,13 @@ UIImage *iconForIdentifier(NSString *identifier) {
 %end
 
 //
-// ─── NCNotificationListViewController ───────────────────────────────────────────
+// ___ NCNotificationListViewController ___________________________________________
 //
 
 %hook NCNotificationListViewController
 %property(nonatomic, retain) NSString *selectedAppID;
 %property(nonatomic, retain) NSMutableArray *sellectedNotifications;
+// %property(nonatomic, retain) NSMutableDictionary *recentlyClearedNotifications;
 
 // //potential fix for unlock prompt
 - (void)notificationListCell:(NCNotificationListCell *)cell requestsPerformAction:(id)arg2 forNotificationRequest:(id)arg3 completion:(id)arg4  {
@@ -101,21 +81,16 @@ UIImage *iconForIdentifier(NSString *identifier) {
     %orig;
 }
 
-// sets the size of hidden notifications to 1x1 inorder to remove spaces for hidden notifications
-// setting this to CGSizeZero will result in the collectionView using the layout size which also does not accept 0 size cell
-// it seams that even wen seting 1x1 as the size in the layout, it is still ignored, propably because NCNotificationListViewController
-// implements this method on its own, so we are forced to do the same
 - (CGSize)collectionView:(UICollectionView *)collection layout:(UICollectionViewLayout *)layout sizeForItemAtIndexPath:(NSIndexPath *)indexPath {
-    if (!ENABLED) return %orig;
-    if (![self shouldShowNotificationAtIndexPath:indexPath]) {
-        return CGSizeMake(0.1, 0.1);
-    } else {
-        return %orig;
-    }
+    CGSize itemSize = %orig;
+    if (!ENABLED) return itemSize;
+    return [self shouldShowNotificationAtIndexPath:indexPath] ? CGSizeMake(itemSize.width, itemSize.height + 8) : CGSizeMake(0.1, 0.1);
 }
 
 - (void)viewDidLoad {
     %orig;
+    [[CSCIconProvider sharedProvider] cacheIconForFailsafe:nil forKey:@"-showAll"];
+    // self.recentlyClearedNotifications = [NSMutableDictionary new];
 
     if (IN_LS) {
         lsViewController = (NCNotificationPriorityListViewController *)self;
@@ -124,29 +99,18 @@ UIImage *iconForIdentifier(NSString *identifier) {
     }
     if (IN_LS && !lsIconCollection) {
         lsIconCollection = [CSCCollectionViewController new];
-        // lsIconCollection.view.frame = CGRectMake(0, 0, self.view.bounds.size.width, 40);
         lsIconCollection.view.translatesAutoresizingMaskIntoConstraints = NO;
         lsIconCollection.cellSize = appViewSize(YES);
+        lsIconCollection.collectionStyle = 0;
         [self addChildViewController:lsIconCollection];
         [self.view addSubview:lsIconCollection.view];
-    } else if (!ncIconCollection) {
+    } else if (!IN_LS && !ncIconCollection) {
         ncIconCollection = [CSCCollectionViewController new];
-        // ncIconCollection.view.frame = CGRectMake(0, 0, self.view.bounds.size.width, 40);
         ncIconCollection.view.translatesAutoresizingMaskIntoConstraints = NO;
         ncIconCollection.cellSize = appViewSize(NO);
+        lsIconCollection.collectionStyle = 1;
         [self addChildViewController:ncIconCollection];
         [self.view addSubview:ncIconCollection.view];
-    }
-
-    // Create the PHContainerView
-    if (IN_LS && !lsPhContainerView) {
-        lsPhContainerView = [[PHContainerView alloc] init:YES];
-        lsPhContainerView.translatesAutoresizingMaskIntoConstraints = NO;
-        [self.view addSubview:lsPhContainerView];
-    } else if (!ncPhContainerView) {
-        ncPhContainerView = [[PHContainerView alloc] init:YES];
-        ncPhContainerView.translatesAutoresizingMaskIntoConstraints = NO;
-        [self.view addSubview:ncPhContainerView];
     }
 
     // Create the pull to clear view
@@ -158,7 +122,7 @@ UIImage *iconForIdentifier(NSString *identifier) {
     //sets the block methods for the pulltoclear and container views
     [self setupBlocks];
     (IN_LS ? lsPullToClearView : ncPullToClearView).hidden = YES;
-    (IN_LS ? lsPhContainerView : lsPhContainerView).hidden = YES;
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(updateConsolidationConstraintsAndLayout:) name:@"kCSCPrefsChanged" object:@YES];
 }
 
 - (void)viewWillLayoutSubviews {
@@ -167,52 +131,16 @@ UIImage *iconForIdentifier(NSString *identifier) {
     if (!ENABLED) {
         self.collectionView.frame = self.view.bounds;
         self.collectionView.translatesAutoresizingMaskIntoConstraints = YES;
-        (IN_LS ? lsPhContainerView : ncPhContainerView).hidden = YES;
         return;
     }
 
-    (IN_LS ? lsPhContainerView : ncPhContainerView).hidden = YES;
-    self.collectionView.clipsToBounds = YES;
-    self.collectionView.translatesAutoresizingMaskIntoConstraints = NO;
-
-    // Layout container view
-    BOOL onTop = ![prefs boolForKey:@"iconLocation"];
-    CGFloat height = appViewSize((IN_LS)).height;
-    CGFloat top = onTop ? height : 0, bottom = !onTop ? -(height + 8) : 0;
-    NSLayoutConstraint *edgeConstraint = onTop ? [NSLayoutConstraint constraintWithItem:((IN_LS) ? lsPhContainerView : ncPhContainerView) attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeTop multiplier:1.0 constant:0.0] :
-                                         [NSLayoutConstraint constraintWithItem:((IN_LS) ? lsPhContainerView : ncPhContainerView) attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeBottom multiplier:1.0 constant:-4.0];
-
-    NSLayoutConstraint *edgeConstraint1 = onTop ? [NSLayoutConstraint constraintWithItem:(IN_LS ? lsIconCollection.view : ncIconCollection.view) attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeTop multiplier:1.0 constant:0.0] :
-                                          [NSLayoutConstraint constraintWithItem:(IN_LS ? lsIconCollection.view : ncIconCollection.view) attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeBottom multiplier:1.0 constant:-4.0];
-    [self.view addConstraints:@[
-         [NSLayoutConstraint constraintWithItem:self.collectionView attribute:NSLayoutAttributeLeading relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeLeading multiplier:1.0 constant:0.0],
-         [NSLayoutConstraint constraintWithItem:self.collectionView attribute:NSLayoutAttributeTrailing relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeTrailing multiplier:1.0 constant:0.0],
-         [NSLayoutConstraint constraintWithItem:self.collectionView attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeBottom multiplier:1 constant:bottom],
-         [NSLayoutConstraint constraintWithItem:self.collectionView attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeTop multiplier:1 constant:top],
-
-         [NSLayoutConstraint constraintWithItem:((IN_LS) ? lsPhContainerView : ncPhContainerView) attribute:NSLayoutAttributeLeading relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeLeading multiplier:1.0 constant:0.0],
-         [NSLayoutConstraint constraintWithItem:((IN_LS) ? lsPhContainerView : ncPhContainerView) attribute:NSLayoutAttributeTrailing relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeTrailing multiplier:1.0 constant:0.0],
-         [NSLayoutConstraint constraintWithItem:((IN_LS) ? lsPhContainerView : ncPhContainerView) attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1 constant:height],
-         edgeConstraint,
-
-         [NSLayoutConstraint constraintWithItem:(IN_LS ? lsIconCollection.view : ncIconCollection.view) attribute:NSLayoutAttributeLeading relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeLeading multiplier:1.0 constant:0.0],
-         [NSLayoutConstraint constraintWithItem:(IN_LS ? lsIconCollection.view : ncIconCollection.view) attribute:NSLayoutAttributeTrailing relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeTrailing multiplier:1.0 constant:0.0],
-         [NSLayoutConstraint constraintWithItem:(IN_LS ? lsIconCollection.view : ncIconCollection.view) attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1 constant:height],
-         edgeConstraint1
-     ]];
-
-    // Layout pull to clear view
-    BOOL pullToClearEnabled = (IN_LS) ? [prefs boolForKey:@"enablePullToClear"] : [prefs boolForKey:@"ncEnablePullToClear"];
-    CGRect currentFrame = ((IN_LS) ? lsPullToClearView : ncPullToClearView).frame;
-    (IN_LS ? lsPullToClearView : ncPullToClearView).frame = CGRectMake(0, -(pullToClearSize + 8), self.collectionView.bounds.size.width, pullToClearSize);
-    (IN_LS ? lsPullToClearView : ncPullToClearView).bounds = CGRectMake(CGRectGetMidX(currentFrame) - (pullToClearSize / 2), CGRectGetMidY(currentFrame) - (pullToClearSize / 2), pullToClearSize, pullToClearSize);
-    (IN_LS ? lsPullToClearView : ncPullToClearView).hidden = !(pullToClearEnabled && ENABLED);
+    [self updateConsolidationConstraintsAndLayout:NO];
 }
 
 // pull to clear update
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
     %orig;
-    if (!ENABLED) return;
+    if (!ENABLED || self.selectedAppID == nil) return;
     [((IN_LS) ? lsPullToClearView : ncPullToClearView) didScroll:scrollView];
 }
 
@@ -223,41 +151,66 @@ UIImage *iconForIdentifier(NSString *identifier) {
     [((IN_LS) ? lsPullToClearView : ncPullToClearView) didEndDragging:scrollView];
 }
 
+%new - (void)updateConsolidationConstraintsAndLayout: (BOOL)layout {
+    self.collectionView.clipsToBounds = YES;
+    self.collectionView.translatesAutoresizingMaskIntoConstraints = NO;
+
+    (IN_LS ? lsIconCollection : ncIconCollection).cellSize = appViewSize(IN_LS);
+
+    // Layout container view
+    BOOL onTop = ![prefs boolForKey:IN_LS ? @"iconLocation" : @"ncIconLocation"];
+    CGFloat height = appViewSize((IN_LS)).height + 2;
+    CGFloat top = onTop ? height : 0, bottom = !onTop ? -(height + 8) : 0;
+
+    NSLayoutConstraint *edgeConstraint = onTop ? [NSLayoutConstraint constraintWithItem:(IN_LS ? lsIconCollection.view : ncIconCollection.view) attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeTop multiplier:1.0 constant:0.0] :
+                                         [NSLayoutConstraint constraintWithItem:(IN_LS ? lsIconCollection.view : ncIconCollection.view) attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeBottom multiplier:1.0 constant:-4.0];
+    [self.view addConstraints:@[
+         [NSLayoutConstraint constraintWithItem:self.collectionView attribute:NSLayoutAttributeLeading relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeLeading multiplier:1.0 constant:0.0],
+         [NSLayoutConstraint constraintWithItem:self.collectionView attribute:NSLayoutAttributeTrailing relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeTrailing multiplier:1.0 constant:0.0],
+         [NSLayoutConstraint constraintWithItem:self.collectionView attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeBottom multiplier:1 constant:bottom],
+         [NSLayoutConstraint constraintWithItem:self.collectionView attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeTop multiplier:1 constant:top],
+
+         [NSLayoutConstraint constraintWithItem:(IN_LS ? lsIconCollection.view : ncIconCollection.view) attribute:NSLayoutAttributeLeading relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeLeading multiplier:1.0 constant:0.0],
+         [NSLayoutConstraint constraintWithItem:(IN_LS ? lsIconCollection.view : ncIconCollection.view) attribute:NSLayoutAttributeTrailing relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeTrailing multiplier:1.0 constant:0.0],
+         [NSLayoutConstraint constraintWithItem:(IN_LS ? lsIconCollection.view : ncIconCollection.view) attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1 constant:height],
+         edgeConstraint
+     ]];
+
+    // Layout pull to clear view
+    BOOL pullToClearEnabled = (IN_LS) ? [prefs boolForKey:@"enablePullToClear"] : [prefs boolForKey:@"ncEnablePullToClear"];
+    CGRect currentFrame = ((IN_LS) ? lsPullToClearView : ncPullToClearView).frame;
+    (IN_LS ? lsPullToClearView : ncPullToClearView).frame = CGRectMake(0, -(pullToClearSize + 8), self.collectionView.bounds.size.width, pullToClearSize);
+    (IN_LS ? lsPullToClearView : ncPullToClearView).bounds = CGRectMake(CGRectGetMidX(currentFrame) - (pullToClearSize / 2), CGRectGetMidY(currentFrame) - (pullToClearSize / 2), pullToClearSize, pullToClearSize);
+    (IN_LS ? lsPullToClearView : ncPullToClearView).hidden = !(pullToClearEnabled && ENABLED);
+
+    if (layout) {
+        [self.view layoutIfNeeded];
+        [self.collectionView setNeedsLayout];
+        [self.collectionView layoutIfNeeded];
+        [(IN_LS ? lsIconCollection : ncIconCollection).view setNeedsLayout];
+        [(IN_LS ? lsIconCollection : ncIconCollection).view layoutIfNeeded];
+    }
+}
+
 // update for new notifications
 %new - (void)insertOrModifyNotification: (NCNotificationRequest *)request {
     if (!ENABLED) return;
 
-    if (!iconCache) iconCache = [NSMutableDictionary new];
-    if (!iconCache[[request sectionIdentifier]]) {
-        iconCache[[request sectionIdentifier]] = [[request content] icon];
-    }
-
-
-    IN_LS ? [lsPhContainerView updateView] : [ncPhContainerView updateView];
+    [[CSCIconProvider sharedProvider] cacheIconForFailsafe:[[request content] icon] forKey:[request sectionIdentifier]];
     IN_LS ? [lsIconCollection updateContent] : [ncIconCollection updateContent];
 
-    if (IN_LS && [prefs boolForKey:@"privacyMode"]) {
-        [lsPhContainerView selectAppID:nil newNotification:NO];
-    } else {
-        [((IN_LS) ? lsPhContainerView : ncPhContainerView) selectAppID:[request sectionIdentifier] newNotification:YES];
+    if (![prefs boolForKey:@"privacyMode"]) {
+        [lsIconCollection selectItemWithIdentifier:[request sectionIdentifier] animated:YES];
     }
 }
 
 %new - (void)removeNotification: (NCNotificationRequest *)request {
     if (!ENABLED) return;
 
-    IN_LS ? [lsPhContainerView updateView] : [ncPhContainerView updateView];
     IN_LS ? [lsIconCollection updateContent] : [ncIconCollection updateContent];
 }
 
 %new - (void)setupBlocks {
-    ((IN_LS) ? lsPhContainerView : ncPhContainerView).setAppID = ^void (NSString *identifier) {
-        self.selectedAppID = identifier;
-    };
-
-    (IN_LS ? lsIconCollection : ncIconCollection).iconForIdentifier = ^UIImage *(NSString *identifier) {
-        return iconForIdentifier(identifier);
-    };
 
     (IN_LS ? lsIconCollection : ncIconCollection).allNotifications = ^NSArray *(){
         NSMutableArray *notifications = [NSMutableArray new];
@@ -276,75 +229,27 @@ UIImage *iconForIdentifier(NSString *identifier) {
 
         // Hide pull to clear view if no app is selected
         (IN_LS ? lsPullToClearView : ncPullToClearView).hidden = identifier == nil;
+
+        NSDictionary *userInfo = @{
+            @"isShowingNotifications": @(identifier != nil),
+            @"isShowingNotificationsLS": IN_LS ? @(identifier != nil) : @NO,
+            @"isShowingNotificationsNC": !IN_LS ? @(identifier != nil) : @NO,
+        };
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"kCSCShowingNotifications" object:nil userInfo:userInfo];
     };
-
-    // Set up notification fetching block
-    ((IN_LS) ? lsPhContainerView : ncPhContainerView).getCurrentNotifications = ^NSDictionary *() {
-        NSMutableDictionary *notificationsDict = [NSMutableDictionary new];
-
-        // Loop through all sections and rows
-        for (NSInteger section = 0; section < [self numberOfSectionsInCollectionView:self.collectionView]; section++) {
-            for (NSInteger item = 0; item < [self collectionView:self.collectionView numberOfItemsInSection:section]; item++) {
-                NSString *identifier = [[self notificationRequestAtIndexPath:[NSIndexPath indexPathForRow:item inSection:section]] sectionIdentifier];
-                unsigned int numNotifications = 1;
-                if (notificationsDict[identifier]) {
-                    numNotifications = [notificationsDict[identifier] unsignedIntegerValue] + 1;
-                }
-                [notificationsDict setObject:[NSNumber numberWithUnsignedInteger:numNotifications] forKey:identifier];
-            }
-        }
-        return notificationsDict;
-    };
-
-    // Set up table view update block
-    ((IN_LS) ? lsPhContainerView : ncPhContainerView).updateNotificationView = ^void () {
-        [self.collectionView.collectionViewLayout invalidateLayout];
-        [self.collectionView setContentOffset:CGPointZero animated:NO];
-
-        // Hide pull to clear view if no app is selected
-        ((IN_LS) ? lsPullToClearView : ncPullToClearView).hidden = !self.selectedAppID;
-    };
-
 
     ((IN_LS) ? lsPullToClearView : ncPullToClearView).clearBlock = ^void () {
+        BOOL clearAll = [self.selectedAppID isEqualToString:@"-showAll"] || [prefs boolForKey:(IN_LS) ? @"showAllWhenNotSelected" : @"ncshowAllWhenNotSelected"];
         self.sellectedNotifications = [NSMutableArray new];
         for (NSInteger section = 0; section < [self numberOfSectionsInCollectionView:self.collectionView]; section++) {
             for (NSInteger item = 0; item < [self collectionView:self.collectionView numberOfItemsInSection:section]; item++) {
                 NCNotificationRequest *request = [self notificationRequestAtIndexPath:[NSIndexPath indexPathForRow:item inSection:section]];
-                if (![[request sectionIdentifier] isEqualToString:self.selectedAppID]) continue;
+                if (!clearAll && ![[request sectionIdentifier] isEqualToString:self.selectedAppID]) continue;
                 [self.sellectedNotifications addObject:request];
+                // [self.recentlyClearedNotifications setObject:request forKey:[NSString stringWithFormat:@"%ld-%ld", (long)item, (long)section]];
             }
         }
-        // if ([self isKindOfClass:NSClassFromString(@"NCNotificationPriorityListViewController")]) {
-
-        //     NCNotificationPriorityListViewController *priorityList = (NCNotificationPriorityListViewController *)self;
-
-        //     if (![priorityList notificationRequestList] ||
-        //         ![priorityList notificationRequestList].requests ||
-        //         ![priorityList notificationRequestList].requests.count) return;
-
-        //     for (NCNotificationRequest *request in [priorityList notificationRequestList].requests) {
-        //         if ([[request sectionIdentifier] isEqualToString:((IN_LS) ? lsPhContainerView : ncPhContainerView).selectedAppID]) {
-        //             [self.sellectedNotifications addObject:request];
-        //         }
-        //     }
-
-        // } else if ([self isKindOfClass:NSClassFromString(@"NCNotificationSectionListViewController")]) {
-        //     NCNotificationSectionListViewController *sectionsList = (NCNotificationSectionListViewController *)self;
-        //     NCNotificationChronologicalList *chronologicalList = (NCNotificationChronologicalList *)[sectionsList sectionList];
-
-        //     if (![chronologicalList sections] ||
-        //         ![chronologicalList sections].count ||
-        //         ![[chronologicalList sections][0] notificationRequests] ||
-        //         ![[chronologicalList sections][0] notificationRequests].count) return;
-
-        //     for (NCNotificationRequest *request in [[chronologicalList sections][0] notificationRequests]) {
-        //         if ([[request sectionIdentifier] isEqualToString:((IN_LS) ? lsPhContainerView : ncPhContainerView).selectedAppID]) {
-        //             [self.sellectedNotifications addObject:request];
-        //         }
-        //     }
-        // }
-
+        [(IN_LS ? lsIconCollection : ncIconCollection) selectItemWithIdentifier:nil animated:NO];
         [self removeNotifications];
     };
 }
@@ -352,25 +257,17 @@ UIImage *iconForIdentifier(NSString *identifier) {
 %new - (void)removeNotifications {
     if (!self.sellectedNotifications.count) return;
 
-    // clear Notifications
     [self.destinationDelegate notificationListViewController:self requestsClearingNotificationRequests:[self.sellectedNotifications copy]];
     if (IN_LS) {
         [ncViewController.destinationDelegate notificationListViewController:self requestsClearingNotificationRequests:[self.sellectedNotifications copy]];
     }
-    // self.isClearing = NO;
-    // NCNotificationRequest *request = (NCNotificationRequest *)self.sellectedNotifications[0];
-    // [self.sellectedNotifications removeObject:request];
-    // // self.isClearing = !(self.sellectedNotifications.count >= 1);
-    // [request.clearAction.actionRunner executeAction:request.clearAction fromOrigin:nil withParameters:nil completion:^{
-    //     if (self.sellectedNotifications.count) {
-    //         [NSTimer scheduledTimerWithTimeInterval:0.01 target:self selector:@selector(removeNotifications) userInfo:nil repeats:NO];
-    //     }
-    // }];
 }
 
 %new - (BOOL)shouldShowNotificationAtIndexPath: (NSIndexPath *)indexPath {
+    // if (self.recentlyClearedNotifications[[NSString stringWithFormat:@"%ld-%ld", (long)indexPath.row, (long)indexPath.section]]) return NO;
+    if ([self.selectedAppID isEqualToString:@"-showAll"]) return YES;
     NSString *identifier = [[self notificationRequestAtIndexPath:indexPath] sectionIdentifier];
-    BOOL showAllWhenNotSelected = (IN_LS && [prefs boolForKey:@"showAllWhenNotSelected"]) || (!IN_LS && [prefs boolForKey:@"ncShowAllWhenNotSelected"]);
+    BOOL showAllWhenNotSelected = [prefs boolForKey:(IN_LS) ? @"showAllWhenNotSelected" : @"ncshowAllWhenNotSelected"];
 
     if (!self.selectedAppID) {
         if ([prefs boolForKey:@"privacyMode"]) {
@@ -379,6 +276,10 @@ UIImage *iconForIdentifier(NSString *identifier) {
         return showAllWhenNotSelected;
     }
     return [self.selectedAppID isEqualToString:identifier];
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 %end
@@ -391,15 +292,16 @@ UIImage *iconForIdentifier(NSString *identifier) {
 
 - (void)insertNotificationRequest: (NCNotificationRequest *)request forCoalescedNotification: (id)notification {
     if (![prefs boolForKey:@"enabled"]) {
-        %orig;
-        return;
+        %orig; return;
     }
-    self.selectedAppID = [request sectionIdentifier];
 
-    // I dont think this is necessary, it dowsnt seam to make a difference
+    // I dont think this is necessary, it dosn't seam to make a difference
     [self.collectionView performBatchUpdates:^{
         [UIView setAnimationsEnabled:NO];
-        [self.collectionView reloadSections:[NSIndexSet indexSetWithIndex:0]];
+
+        if ([self.selectedAppID isEqualToString:[request sectionIdentifier]]) {
+            [self.collectionView.collectionViewLayout invalidateLayout];
+        }
     } completion:^(BOOL finished) {
         [UIView setAnimationsEnabled:YES];
         %orig;
@@ -418,11 +320,7 @@ UIImage *iconForIdentifier(NSString *identifier) {
 }
 
 - (BOOL)shouldAddHintTextForNotificationViewController:(id)viewController {
-    if ([prefs boolForKey:@"enabled"] && [prefs boolForKey:@"disableHintText"]) {
-        return NO;
-    } else {
-        return %orig(viewController);
-    }
+    return ([prefs boolForKey:@"enabled"] && [prefs boolForKey:@"disableHintText"]) ? NO : %orig(viewController);
 }
 
 %end
@@ -434,11 +332,6 @@ UIImage *iconForIdentifier(NSString *identifier) {
 %hook NCNotificationSectionListViewController
 
 - (void)insertNotificationRequest: (NCNotificationRequest *)request forCoalescedNotification: (id)notification {
-    if (![prefs boolForKey:@"ncEnabled"]) {
-        %orig;
-        return;
-    }
-    ncPhContainerView.selectedAppID = [request sectionIdentifier];
     %orig;
     [(NCNotificationListViewController *) self insertOrModifyNotification:request];
 }
@@ -460,7 +353,7 @@ UIImage *iconForIdentifier(NSString *identifier) {
 %end
 
 //
-// ─── SBDashBoardClippingLine ─────��─────���──────────────────���────────���─������──────����───
+// ___ SBDashBoardClippingLine ____________________________________________________
 //
 
 // Hide line that shows when scrolling up on lock screen
@@ -475,7 +368,7 @@ UIImage *iconForIdentifier(NSString *identifier) {
 %end
 
 //
-// ��── SBDashBoardMainPageView ────────────────────────────────────────────────────
+// ___ SBDashBoardMainPageView ____________________________________________________
 //
 
 // Hide "Press home to unlock" label on lock screen if PH is at the bottom
@@ -489,7 +382,7 @@ UIImage *iconForIdentifier(NSString *identifier) {
 %end
 
 //
-// ─── SBDashBoardPageControl ───────��������──���───────────────────���─────────────────────
+// ___ SBDashBoardPageControl _____________________________________________________
 //
 
 // Hide lock screen page indicators if PH is at the bottom
@@ -503,7 +396,47 @@ UIImage *iconForIdentifier(NSString *identifier) {
 %end
 
 //
-// ─── SBLockScreenViewControllerBase ─────────────────────────────────────────────
+// ___ SBNotificationSeparatorView ________________________________________________
+//
+
+// Hide bottom seporator in NC
+%hook SBNotificationSeparatorView
+
+- (void)layoutSubviews {
+    %orig;
+    self.hidden = ([prefs boolForKey:@"ncEnabled"]);
+}
+
+%end
+
+//
+// ___ SBSearchEtceteraLayoutView _________________________________________________
+//
+
+%hook SBSearchEtceteraLayoutView
+
+- (void)_layoutPageControl {
+    %orig;
+    self._pageControl.hidden = ([prefs boolForKey:@"ncEnabled"]);
+}
+
+- (void)setContentBottomInset:(double)inset {
+    inset = [prefs boolForKey:@"ncEnabled"] ? 14 : inset;
+    %orig(inset);
+}
+
+%end
+
+%hook SBNotificationCenterViewController
+
+-(void)_loadGrabberContentView {
+    return;
+}
+
+%end
+
+//
+// ___ SBLockScreenViewControllerBase _____________________________________________
 //
 
 // For the deselect on lock feature on lock screen
@@ -511,15 +444,28 @@ UIImage *iconForIdentifier(NSString *identifier) {
 
 - (void)setInScreenOffMode: (BOOL)locked {
     %orig;
-    if (locked && [prefs boolForKey:@"enabled"] && [prefs boolForKey:@"collapseOnLock"] && lsPhContainerView) {
-        [lsPhContainerView selectAppID:lsPhContainerView.selectedAppID newNotification:NO];
+    if (![prefs boolForKey:@"enabled"] || !lsIconCollection) return;
+    if ([prefs boolForKey:@"collapseOnLock"]) {
+        [lsIconCollection selectItemWithIdentifier:nil animated:NO];
+    } else {
+        [lsIconCollection updateVisibleCellsAnimated:NO];
+    }
+}
+
+- (void)didCompleteTransitionOutOfLockScreen {
+    %orig;
+    if (![prefs boolForKey:@"enabled"] || !lsIconCollection) return;
+    if ([prefs boolForKey:@"collapseOnLock"]) {
+        [lsIconCollection selectItemWithIdentifier:nil animated:NO];
+    } else {
+        [lsIconCollection updateVisibleCellsAnimated:NO];
     }
 }
 
 %end
 
 //
-// ─── SBNotificationCenterController ─────────────────────────────────────────────
+// ___ SBNotificationCenterController _____________________________________________
 //
 
 // For the deselect on close feature in notification center
@@ -527,17 +473,17 @@ UIImage *iconForIdentifier(NSString *identifier) {
 
 - (void)transitionDidBegin: (id)animated {
     %orig;
-    if (![prefs boolForKey:@"ncEnabled"]) return;
-    [ncPhContainerView updateView];
-    [ncPhContainerView selectAppID:ncPhContainerView.selectedAppID newNotification:NO];
-    ncPhContainerView.updateNotificationView();
+    if ([prefs boolForKey:@"ncEnabled"] && ncIconCollection) {
+        [ncIconCollection updateVisibleCellsAnimated:NO];
+    }
+
 }
 
 - (void)transitionDidFinish:(id)animated {
     %orig;
     if (![prefs boolForKey:@"ncEnabled"]) return;
-    if (![self isVisible] && [prefs boolForKey:@"ncCollapseOnLock"] && ncPhContainerView) {
-        [ncPhContainerView selectAppID:ncPhContainerView.selectedAppID newNotification:NO];
+    if ([prefs boolForKey:@"ncCollapseOnLock"] && ncIconCollection) {
+        [ncIconCollection selectItemWithIdentifier:nil animated:NO];
     }
 }
 
@@ -559,6 +505,8 @@ UIImage *iconForIdentifier(NSString *identifier) {
     CGRect suggestedFrame = %orig;
 
     if (![prefs boolForKey:@"enabled"] || ![prefs boolForKey:@"verticalAdjustmentEnabled"]) return suggestedFrame;
+
+    if ([CSCProvider tweakWithDylibNameInstalledAndEnabled:@"motuumLS" plistName:@"com.creaturecoding.motuumls" enabledKey:@"kMLSEnabled"]) return suggestedFrame;
 
     CGFloat prefsOrigin = [prefs floatForKey:@"verticalAdjustmentTop"];
     CGFloat prefsHeight = [prefs floatForKey:@"verticalAdjustmentBottom"];
@@ -583,8 +531,9 @@ UIImage *iconForIdentifier(NSString *identifier) {
     return [prefs boolForKey:@"disableAutomaticDismiss"] ? : %orig;
 }
 
-// - (NSUInteger)_lockScreenPersistence {
-//     return 0;
-// }
+- (NSUInteger)_lockScreenPersistence {
+    return 1;
+}
 
 %end
+
