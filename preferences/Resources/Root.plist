@@ -87,6 +87,29 @@
 				<key>changes</key>
 				<array>
 					<dict>
+						<key>alpha 6</key>
+						<array>
+							<string>Updated Compatibility with libCSPreferences</string>
+							<string>Added Tap To Open feature for opening notifications with a tap</string>
+							<string>Added respring option in all the settings pages (a respring is required for most changes to take effect)</string>
+							<string>Changed keyboard type in preferences to decimal pad, and added a negative toggle for fields requiring negatives</string>
+							<string>Fixed coloring option for selection view</string>
+							<string>Added unselected app color option for setting different colors for app selection view</string>
+							<string>Added option to disable the ‘All Notifications” section</string>
+							<string>Added option to disable hiding of the chevron in Notification Center</string>
+							<string>Added ColorBadges support back in</string>
+							<string>Refactored App View to better support loading of preferences</string>
+							<string>Fixed a few bugs in the IconProvider. there was an issue where icons would randomly stop loading, that should be fixed now</string>
+							<string>Fixed Vertical Adjustment options not applying in some cases</string>
+							<string>Fixed issue where the NC would use the settings for the lockscreen</string>
+							<string>Fixed issue where NC was stuck with below style icons</string>
+							<string>Fixed issue where disabling LS or NC would break user interaction</string>
+							<string>Hopefully fixed crash that would sometimes occur when receiving/removing notifications (you may now receive an alert showing an error message, this is intentional)</string>
+							<string>Slowly getting rid of ugly global variables, I don’t care for those</string>
+							<string>Hopefully fixed issue where swiping notifications would not always invoke the notification</string>
+						</array>
+					</dict>
+					<dict>
 						<key>alpha 5</key>
 						<array>
 							<string>Rewrote the App Selection View from the ground up using MVC guidelines</string>

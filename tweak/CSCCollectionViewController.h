@@ -6,6 +6,7 @@
 @property (nonatomic, strong) NSOrderedSet *indexedRequests;
 @property (nonatomic, strong) NSIndexPath *selectedIndexPath;
 @property (nonatomic, assign) CGSize cellSize;
+@property (nonatomic, assign) BOOL showAllSection;
 
 @property (nonatomic, copy) NSArray * (^allNotifications)();
 @property (nonatomic, copy) void (^setCurrentIdentifier)(NSString *identifier);

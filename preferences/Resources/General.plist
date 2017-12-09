@@ -57,6 +57,21 @@
 
             <dict>
                 <key>cell</key>
+                <string>PSSwitchCell</string>
+                <key>label</key>
+                <string>Tap To Open</string>
+                <key>key</key>
+                <string>tapToOpen</string>
+                <key>sublabel</key>
+                <string>tap notifications to open them</string>
+                <key>PostNotification</key>
+                <string>com.creaturecoding.consolidation.prefschanged</string>
+                <key>defaults</key>
+                <string>com.creaturecoding.consolidation</string>
+            </dict>
+
+            <dict>
+                <key>cell</key>
                 <string>PSGroupCell</string>
             </dict>
 

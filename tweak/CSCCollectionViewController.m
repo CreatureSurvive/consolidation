@@ -197,7 +197,7 @@
         [contentTable setObject:request forKey:identifier];
     }
 
-    if (contentTable.count > 1) {
+    if (contentTable.count > 1 && self.showAllSection) {
         identifier = @"-showAll";
         Request *request = [[Request alloc] requestWithIdentifier:identifier count:allNotifications.count timestamp:[NSDate date] icon:[_iconProvider iconForBundleIdentifier:identifier]];
         [contentTable setObject:request forKey:identifier];

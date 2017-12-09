@@ -5,6 +5,8 @@
     SBIconModel *_model;
 }
 
+#pragma mark - Class Methods
+
 + (instancetype)sharedProvider {
     static dispatch_once_t once;
     static id sharedProvider;
@@ -21,18 +23,27 @@
     return [icon getIconImage:2];
 }
 
+#pragma mark - Instance Methods
+
 - (UIImage *)iconForBundleIdentifier:(NSString *)identifier {
     return [self iconOfStyle:CSCIconStyleRegular forIdentifier:identifier];
 }
 
 - (UIImage *)iconOfStyle:(CSCIconStyle)style forIdentifier:(NSString *)identifier {
+
+    UIImage *iconImage = [self _failsafeIconForKey:identifier];
+    if (iconImage) return iconImage;
+
     if (!_model) {
         SBIconController *iconController = [NSClassFromString(@"SBIconController") sharedInstance];
         _model = [iconController model];
     }
 
     SBIcon *icon = [_model applicationIconForBundleIdentifier:identifier];
-    UIImage *iconImage = [icon getIconImage:style] ? : [self _failsafeIconForKey:identifier];
+    iconImage = [icon getIconImage:style] ? : [self _nonAppIconForKey:identifier];
+
+    [self cacheIconForFailsafe:iconImage forKey:identifier];
+
     return iconImage;
 }
 
@@ -40,7 +51,25 @@
     if (!_failsafeIconCache) {
         _failsafeIconCache = [NSCache new];
     }
+
     if ([_failsafeIconCache objectForKey:key]) return;
+
+    [_failsafeIconCache setObject:icon forKey:key];
+}
+
+#pragma mark - Private Methods
+
+- (UIImage *)_failsafeIconForKey:(NSString *)key {
+    if (!_failsafeIconCache) return nil;
+    return [_failsafeIconCache objectForKey:key] ? : nil;
+}
+
+- (UIImage *)_nonAppIconForKey:(NSString *)key {
+    UIImage *icon;
+
+    if ([key isEqualToString:@"com.apple.springboard.SBUserNotificationAlert"]) {
+        icon = [UIImage imageWithContentsOfFile:@"/System/Library/PrivateFrameworks/PassKitUI.framework/Payment_AlertAccessory@2x.png"];
+    }
 
     if ([key isEqualToString:@"com.apple.DuetHeuristic-BM"]) {
         icon = [UIImage imageNamed:@"BatteryIcon" inBundle:[NSBundle bundleWithPath:@"/System/Library/PrivateFrameworks/DuetHeuristics.framework"] compatibleWithTraitCollection:nil];
@@ -50,12 +79,11 @@
         icon = [UIImage imageNamed:@"ReaderButton" inBundle:[NSBundle bundleWithPath:@"/System/Library/Frameworks/SafariServices.framework"] compatibleWithTraitCollection:nil];
     }
 
-    [_failsafeIconCache setObject:icon forKey:key];
-}
+    if (!icon) {
+        icon = [UIImage imageWithContentsOfFile:@"/System/Library/PrivateFrameworks/PassKitUI.framework/Payment_Alert@2x.png"];
+    }
 
-- (UIImage *)_failsafeIconForKey:(NSString *)key {
-    if (!_failsafeIconCache) return nil;
-    return [_failsafeIconCache objectForKey:key] ? : nil;
+    return icon;
 }
 
 @end

@@ -23,6 +23,8 @@
         <real>0</real>
         <key>verticalAdjustmentBottom</key>
         <real>0</real>
+        <key>lsShowAllSection</key>
+        <true/>
         <key>showAllWhenNotSelected</key>
         <real>0</real>
         <key>disableHintText</key>
@@ -38,6 +40,8 @@
         <key>lsBadgeTextColor</key>
         <string>#000000:0.600000</string>
         <key>lsMaterialColor</key>
+        <string>#ffffff:0.650000</string>
+        <key>lsMaterialColorUnselected</key>
         <string>#ffffff:0.650000</string>
         <key>lsBadgeRadius</key>
         <real>0.3</real>
@@ -59,8 +63,12 @@
         <real>1</real>
         <key>ncNumberStyle</key>
         <real>2</real>
+        <key>ncShowAllSection</key>
+        <true/>
         <key>ncShowAllWhenNotSelected</key>
         <real>0</real>
+        <key>ncHideChevronAndLine</key>
+        <false/>
         <key>ncPullToClearColor</key>
         <string>FFFFFF:1.000000</string>
         <key>ncSelectionColor</key>
@@ -70,6 +78,8 @@
         <key>ncBadgeTextColor</key>
         <string>#000000:0.600000</string>
         <key>ncMaterialColor</key>
+        <string>#ffffff:0.650000</string>
+        <key>ncMaterialColorUnselected</key>
         <string>#ffffff:0.650000</string>
         <key>ncBadgeRadius</key>
         <real>0.3</real>
@@ -81,6 +91,10 @@
         <key>alwaysSendToLockscreen</key>
         <false/>
         <key>disableAutomaticDismiss</key>
+        <false/>
+        <key>disableHintText</key>
+        <false/>
+        <key>tapToOpen</key>
         <false/>
     </dict>
 </plist>

@@ -1,5 +1,5 @@
 Package: com.creaturecoding.consolidation
-Replaces: me.thomasfinch.priorityhub, com.creaturecoding.priorityhub
+Replaces: me.thomasfinch.priorityhub, com.creaturecoding.priorityhub, com.gilshahar7.taptoopen
 Name: Consolidation ALPHA
 Depends: firmware (>= 10), mobilesubstrate, preferenceloader, applist, com.creaturecoding.libcspreferences, com.creaturesurvive.libcscolorpicker
 Architecture: iphoneos-arm
@@ -8,5 +8,5 @@ Depiction: https://www.creaturecoding.com/depictions/cydia/?p=consolidation
 Maintainer: CreatureSurvive <support@creaturecoding.com>
 Author: CreatureSurvive <support@creaturecoding.com>
 Section: Tweaks
-Version: 1.0alpha5-2+debug
-Installed-Size: 920
+Version: 1.0alpha6-2+debug
+Installed-Size: 932

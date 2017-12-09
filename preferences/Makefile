@@ -6,7 +6,7 @@ Consolidation_INSTALL_PATH = /Library/PreferenceBundles
 Consolidation_FRAMEWORKS = UIKit
 Consolidation_PRIVATE_FRAMEWORKS = Preferences
 Consolidation_CFLAGS += -fobjc-arc
-Consolidation_LDFLAGS +=  -lCSPreferences
+Consolidation_LDFLAGS +=  -lCSPreferences -lCSColorPicker
 
 include $(THEOS_MAKE_PATH)/bundle.mk
 

@@ -1,3 +1,4 @@
+#import "CSCCollectionViewController.h"
 
 @interface SBSearchEtceteraLayoutContentView : UIView
 @end
@@ -84,15 +85,37 @@
 @interface NCMutableNotificationRequest : NCNotificationRequest
 @end
 
-@interface NCNotificationViewController : UIViewController
-@property (nonatomic, retain) NCNotificationRequest *notificationRequest;
+@interface NCTransitionManager : NSObject
+- (BOOL)hasCommittedToPresentingLongLookViewController;
 @end
 
-@interface NCNotificationListCell : UICollectionViewCell
+@interface NCNotificationContentView : UIView
+@end
+
+@interface NCNotificationShortLookView : UIView //NCShortLookView
+@end
+
+@interface NCNotificationViewController : UIViewController
+@property (nonatomic, retain) NCNotificationRequest *notificationRequest;
+@property (getter = _transitionManager, nonatomic, retain) NCTransitionManager *transitionManager;
+- (void)_executeDefaultAction:(BOOL)arg1;
+- (void)_executeClearAction:(BOOL)arg1;
+- (void)_executeCloseAction:(BOOL)arg1;
+- (BOOL)isLookStyleLongLook;
+- (BOOL)isShortLook;
+- (id)_presentedLongLookViewController;
+@end
+
+@interface NCNotificationShortLookViewController : NCNotificationViewController
+- (NCNotificationShortLookView *)_notificationShortLookViewIfLoaded;
+@end
+
+@interface NCNotificationListCell : UICollectionViewCell <UIGestureRecognizerDelegate>
 @property(nonatomic, assign) BOOL scrolledOnce;
 @property (assign, getter = isConfigured, nonatomic) BOOL configured;
 @property (assign, getter = isExecutingDefaultAction, nonatomic) BOOL executingDefaultAction;
 @property (nonatomic, retain) NCNotificationViewController *contentViewController;
+@property (assign, nonatomic) BOOL supportsSwipeToDefaultAction;
 @end
 
 @interface NCNotificationListSection : NSObject
@@ -115,6 +138,7 @@
 @property(nonatomic, retain) NSString *selectedAppID;
 @property(nonatomic, retain) NSMutableArray *sellectedNotifications;
 @property(nonatomic, retain) NSMutableDictionary *recentlyClearedNotifications;
+@property(nonatomic, retain) CSCCollectionViewController *iconCollection;
 @property (assign, nonatomic) id<NCNotificationListViewControllerDestinationDelegate> destinationDelegate;
 @property (assign, nonatomic) NCNotificationListCell *cellWithRevealedActions;
 
@@ -152,6 +176,8 @@
 - (void)removeNotificationRequest:(NCNotificationRequest *)request forCoalescedNotification:(id)notification;
 - (void)_reloadNotificationViewControllerForHintTextAtIndexPaths:(id)arg1;
 - (void)_reloadNotificationViewControllerForHintTextAtIndexPath:(id)arg1;
+- (void)hideRequestsForNotificationSectionIdentifier:(id)arg1 subSectionIdentifier:(id)arg2;
+- (void)showRequestsForNotificationSectionIdentifier:(id)arg1 subSectionIdentifier:(id)arg2;
 @end
 
 @interface NCNotificationSectionListViewController : NCNotificationListViewController {
@@ -193,4 +219,3 @@
                                       block:(void (^)(NSTimer *timer))block;
 
 @end
-

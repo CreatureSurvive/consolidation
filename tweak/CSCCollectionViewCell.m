@@ -1,10 +1,21 @@
+#import <UIColor+ColorFromHex.h>
 #import "CSCCollectionViewCell.h"
 #import "CSCProvider.h"
+#import "colorbadges_api.h"
+#import <dlfcn.h>
 #define prefs [CSCProvider sharedProvider]
+
+@interface _UIBackdropView : UIView
+@property (nonatomic, retain) UIView *colorTintView;
+@end
 
 @interface NCMaterialView : UIView
 @property (assign, setter = _setSubviewsContinuousCornerRadius :, getter = _subviewsContinuousCornerRadius, nonatomic) double subviewsContinuousCornerRadius;
-+ (id)materialViewWithStyleOptions:(NSUInteger)style;
++ (NCMaterialView *)materialViewWithStyleOptions:(NSUInteger)styleOptions;
+
+// noctis support
+- (void)setUseLQDCCStyle:(BOOL)enableNoctis;
+- (void)setDarkModeEnabled:(BOOL)noctisIsEnabled;
 @end
 
 @implementation CSCCollectionViewCell {
@@ -13,9 +24,13 @@
     UIColor *_badgeBackgroundColor;
     UIColor *_badgeTextColor;
     UIColor *_materialColor;
+    UIColor *_materialColorUnselected;
     double _badgeRadius;
     double _materialRadius;
     double _iconRadius;
+    BOOL _colorbadgesEnabled;
+    Class _colorbadges;
+    Class _backdropClass;
 }
 
 - (id)initWithFrame:(CGRect)frame {
@@ -25,9 +40,9 @@
         [self setInsetsForFrame:frame];
 
         // ___ setup backdrop ______________________________________________
-        Class backdropClass = NSClassFromString(@"NCMaterialView");
-        if (backdropClass) {
-            self.backdrop = [backdropClass materialViewWithStyleOptions:1];
+        _backdropClass = NSClassFromString(@"NCMaterialView");
+        if (_backdropClass) {
+            self.backdrop = [_backdropClass materialViewWithStyleOptions:1];
             self.backdrop.frame = UIEdgeInsetsInsetRect(bounds, UIEdgeInsetsMake(1, 1, 1, 1));
             [(NCMaterialView *) self.backdrop _setSubviewsContinuousCornerRadius:bounds.size.width / 3];
         } else {
@@ -56,6 +71,11 @@
         [self.contentView addSubview:self.iconView];
         [self.contentView addSubview:self.label];
 
+        // ___ color badges ________________________________________________
+        dlopen("/Library/MobileSubstrate/DynamicLibraries/ColorBadges.dylib", RTLD_LAZY);
+        _colorbadges = NSClassFromString(@"ColorBadges");
+        _colorbadgesEnabled = (_colorbadges && [_colorbadges isEnabled]);
+
         // ___ fetch preferences ___________________________________________
         [self fetchAndApplySettings];
 
@@ -81,6 +101,7 @@
         [self updateIconFrame];
         [self updateBadgeFrame];
         [self updateBadgeFont];
+        [self updateSelectionColor];
     };
     if (animated) {
         [UIView animateWithDuration:0.6 delay:0 usingSpringWithDamping:0.5 initialSpringVelocity:0.05 options:UIViewAnimationOptionAllowUserInteraction animations:^{ changes(); } completion:^(BOOL finished) {
@@ -119,10 +140,23 @@
     self.label.font = [UIFont systemFontOfSize:(self.selected || _style) ? 12.0 : 9.0];
 }
 
+- (void)updateSelectionColor {
+    if (_backdropClass) {
+        NCMaterialView *materialBackdrop = (NCMaterialView *)self.backdrop;
+        [materialBackdrop _setSubviewsContinuousCornerRadius:self.bounds.size.width * _materialRadius];
+        [[(_UIBackdropView *)[materialBackdrop valueForKey:@"_backdropView"] colorTintView] setBackgroundColor:[self.selected ? _materialColor : _materialColorUnselected colorWithAlphaComponent:1]];
+        materialBackdrop.alpha = [self.selected ? _materialColor : _materialColorUnselected alpha];
+    } else {
+        self.backdrop.layer.cornerRadius = [self iconRectforCellState:self.selected].size.width * _materialRadius;
+        self.backdrop.backgroundColor = self.selected ? _materialColor : _materialColorUnselected;
+    }
+}
+
 #pragma mark - Setters
 
 - (void)setIcon:(UIImage *)icon {
     self.iconView.image = icon;
+    [self updateColorBadges];
 }
 
 - (void)setCount:(NSString *)count {
@@ -150,11 +184,11 @@
     CGRect iconRect = [self iconRectforCellState:selected];
     UIEdgeInsets insets = selected ? self.selectedInsets : self.insets;
     CGFloat extraWidth = self.label.text.length ? (self.label.text.length - 1) * 4 : 0;
-    CGSize size = (selected || _style) ? CGSizeMake((14 + extraWidth), 14) : CGSizeMake(10 + extraWidth, 10);
+    CGSize size = (selected || _style) ? CGSizeMake((16 + extraWidth), 16) : CGSizeMake(10 + extraWidth, 12);
 
     CGRect badgeRect;
     if (_style) {
-        badgeRect = CGRectMake(CGRectGetMidX(self.bounds) - (size.width / 2), CGRectGetMaxY(self.bounds) - (size.height + 4), size.width, size.height);
+        badgeRect = CGRectMake(CGRectGetMidX(self.bounds) - (size.width / 2), CGRectGetMaxY(self.bounds) - (size.height + 3), size.width, size.height);
     } else {
         badgeRect = CGRectMake(iconRect.size.width - size.width + insets.right - selected, insets.top, size.width, size.height);
     }
@@ -167,27 +201,47 @@
 }
 
 - (void)fetchAndApplySettings {
-    _badgeBackgroundColor = [prefs colorForKey:self.collectionStyle ? @"lsBadgeBackgroundColor" : @"ncBadgeBackgroundColor"];
-    _badgeTextColor = [prefs colorForKey:self.collectionStyle ? @"lsBadgeTextColor" : @"ncBadgeTextColor"];
-    _materialColor = [prefs colorForKey:self.collectionStyle ? @"lsMaterialColor" : @"ncMaterialColor"];
-    _badgeRadius = [prefs doubleForKey:self.collectionStyle ? @"lsBadgeRadius" : @"ncBadgeRadius"];
-    _materialRadius = [prefs doubleForKey:self.collectionStyle ? @"lsMaterialRadius" : @"ncMaterialRadius"];
-    _iconRadius = [prefs doubleForKey:self.collectionStyle ? @"lsIconRadius" : @"ncIconRadius"];
+    _badgeBackgroundColor = [prefs colorForKey:self.collectionStyle ? @"ncBadgeBackgroundColor" : @"lsBadgeBackgroundColor"];
+    _badgeTextColor = [prefs colorForKey:self.collectionStyle ? @"ncBadgeTextColor" : @"lsBadgeTextColor"];
+    _materialColor = [prefs colorForKey:self.collectionStyle ? @"ncMaterialColor" : @"lsMaterialColor"];
+    _materialColorUnselected = [prefs colorForKey:self.collectionStyle ? @"ncMaterialColorUnselected" : @"lsMaterialColorUnselected"];
+    _badgeRadius = [prefs doubleForKey:self.collectionStyle ? @"ncBadgeRadius" : @"lsBadgeRadius"];
+    _materialRadius = [prefs doubleForKey:self.collectionStyle ? @"ncMaterialRadius" : @"lsMaterialRadius"];
+    _iconRadius = [prefs doubleForKey:self.collectionStyle ? @"ncIconRadius" : @"lsIconRadius"];
 
     // ___ BACKDROP ___________________________________________________________________
-    Class backdropClass = NSClassFromString(@"NCMaterialView");
-    if (backdropClass)
-        [(NCMaterialView *) self.backdrop _setSubviewsContinuousCornerRadius:self.bounds.size.width * _materialRadius];
-    else
-        self.backdrop.layer.cornerRadius = [self iconRectforCellState:self.selected].size.width * _materialRadius;
+    [self updateSelectionColor];
 
     // ___ BADGE ______________________________________________________________________
-    self.label.textColor = _badgeTextColor;
-    self.label.backgroundColor = _badgeBackgroundColor;
+    // ___ ColorBadges support ________________________________________________________
+    if (_colorbadgesEnabled) {
+        [self updateColorBadges];
+    } else {
+        self.label.textColor = _badgeTextColor;
+        self.label.backgroundColor = _badgeBackgroundColor;
+    }
     self.label.layer.cornerRadius = self.label.frame.size.height * _badgeRadius;
 
     // ___ ICON _______________________________________________________________________
     self.iconView.layer.cornerRadius = self.iconView.frame.size.width * _iconRadius;
+}
+
+- (void)updateColorBadges {
+    if (_colorbadgesEnabled) {
+        int badgeColor = [[_colorbadges sharedInstance] colorForImage:self.iconView.image];
+        self.label.backgroundColor = UIColorFromRGB(badgeColor);
+
+        if ([_colorbadges areBordersEnabled])
+            self.label.layer.borderWidth = 1.0;
+
+        if ([_colorbadges isDarkColor:badgeColor]) {
+            self.label.layer.borderColor = [UIColor lightTextColor].CGColor;
+            self.label.textColor = [UIColor lightTextColor];
+        } else {
+            self.label.layer.borderColor = [UIColor darkTextColor].CGColor;
+            self.label.textColor = [UIColor darkTextColor];
+        }
+    }
 }
 
 - (void)dealloc {
