@@ -79,6 +79,10 @@
         icon = [UIImage imageNamed:@"ReaderButton" inBundle:[NSBundle bundleWithPath:@"/System/Library/Frameworks/SafariServices.framework"] compatibleWithTraitCollection:nil];
     }
 
+    if ([key isEqualToString:@"-calendarForLockscreen"]) {
+        icon = [self iconForBundleIdentifier:@"com.apple.mobilecal"];
+    }
+
     if (!icon) {
         icon = [UIImage imageWithContentsOfFile:@"/System/Library/PrivateFrameworks/PassKitUI.framework/Payment_Alert@2x.png"];
     }

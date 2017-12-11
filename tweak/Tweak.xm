@@ -17,6 +17,8 @@ NCNotificationPriorityListViewController *lsViewController = nil;
 NCNotificationSectionListViewController *ncViewController = nil;
 CSCCollectionViewController *lsIconCollection = nil;
 CSCCollectionViewController *ncIconCollection = nil;
+UIView *calendarView = nil;
+Class calendarClass;
 
 CGSize appViewSize(BOOL lockscreen) {
     if ((lockscreen && ![prefs boolForKey:@"enabled"]) || (!lockscreen && ![prefs boolForKey:@"ncEnabled"]))
@@ -42,7 +44,7 @@ CGSize appViewSize(BOOL lockscreen) {
     }
 
     BOOL numberStyleBelow = (lockscreen ? [prefs intForKey:@"numberStyle"] == 1 : [prefs intForKey:@"ncNumberStyle"] == 1);
-    CGFloat height = numberStyleBelow ? width * 1.5 : width;
+    CGFloat height = numberStyleBelow ? width * 1.6 : width;
     return CGSizeMake(width, height);
 }
 
@@ -111,7 +113,8 @@ CGSize appViewSize(BOOL lockscreen) {
 - (CGSize)collectionView:(UICollectionView *)collection layout:(UICollectionViewLayout *)layout sizeForItemAtIndexPath:(NSIndexPath *)indexPath {
     CGSize itemSize = %orig;
     if (!ENABLED) return itemSize;
-    return [self shouldShowNotificationAtIndexPath:indexPath] ? CGSizeMake(itemSize.width, itemSize.height + 8) : CGSizeMake(0.1, 0.1);
+    return ([[(NCNotificationListCollectionViewFlowLayout *) layout removedIndexPaths] containsObject:indexPath] || [self shouldShowNotificationAtIndexPath:indexPath]) ?
+           CGSizeMake(itemSize.width, itemSize.height + 8) : CGSizeMake(0.1, 0.1);
 }
 
 - (void)viewDidLoad {
@@ -125,11 +128,13 @@ CGSize appViewSize(BOOL lockscreen) {
         ncViewController = (NCNotificationSectionListViewController *)self;
     }
     if (IN_LS && !lsIconCollection) {
+        calendarClass = NSClassFromString(@"CFLCollectionFooterView");
         lsIconCollection = [CSCCollectionViewController new];
         [lsIconCollection.view setTranslatesAutoresizingMaskIntoConstraints:NO];
         [lsIconCollection setCellSize:appViewSize(YES)];
         [lsIconCollection setCollectionStyle:0];
         [lsIconCollection setShowAllSection:[prefs boolForKey:@"lsShowAllSection"]];
+        [lsIconCollection setShowCalendarSection:calendarClass != nil];
         [self setIconCollection:lsIconCollection];
         [self addChildViewController:lsIconCollection];
         [self.view addSubview:lsIconCollection.view];
@@ -158,14 +163,7 @@ CGSize appViewSize(BOOL lockscreen) {
 
 - (void)viewWillLayoutSubviews {
     %orig;
-
     if (!ENABLED) return;
-    // {
-    //     self.collectionView.frame = self.view.bounds;
-    //     self.collectionView.translatesAutoresizingMaskIntoConstraints = YES;
-    //     return;
-    // }
-
     [self updateConsolidationConstraintsAndLayout:NO];
 }
 
@@ -187,6 +185,21 @@ CGSize appViewSize(BOOL lockscreen) {
     [((IN_LS) ? lsPullToClearView : ncPullToClearView) didEndDragging:scrollView];
 }
 
+%new - (void)checkForCalendarView {
+
+    if (calendarClass && !calendarView) {
+        for (UIView *view in self.collectionView.subviews) {
+            if ([view isKindOfClass:calendarClass]) {
+                calendarView = view;
+                [calendarView setHidden:![self.selectedAppID isEqualToString:@"-calendarForLockscreen"]];
+            }
+        }
+    } else if (calendarView) {
+        [calendarView setHidden:![self.selectedAppID isEqualToString:@"-calendarForLockscreen"]];
+    }
+
+}
+
 %new - (void)updateConsolidationConstraintsAndLayout: (BOOL)layout {
     self.collectionView.clipsToBounds = YES;
     self.collectionView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -197,7 +210,7 @@ CGSize appViewSize(BOOL lockscreen) {
 
     // Layout container view
     BOOL onTop = ![prefs boolForKey:lockscreen ? @"iconLocation" : @"ncIconLocation"];
-    CGFloat height = appViewSize(lockscreen).height + 2;
+    CGFloat height = appViewSize(lockscreen).height + (self.iconCollection.collectionStyle ? 2 : 6);
     CGFloat top = onTop ? height : 0, bottom = !onTop ? -(height + 8) : 0;
 
     NSLayoutConstraint *edgeConstraint = onTop ? [NSLayoutConstraint constraintWithItem:self.iconCollection.view attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeTop multiplier:1.0 constant:0.0] :
@@ -241,6 +254,7 @@ CGSize appViewSize(BOOL lockscreen) {
             [lsIconCollection selectItemWithIdentifier:[request sectionIdentifier] animated:YES];
     }
     [self.collectionView.collectionViewLayout invalidateLayout];
+    [self performSelector:@selector(checkForCalendarView)];
 }
 
 %new - (void)removeNotification: (NCNotificationRequest *)request {
@@ -263,6 +277,9 @@ CGSize appViewSize(BOOL lockscreen) {
 
     self.iconCollection.setCurrentIdentifier = ^void (NSString *identifier) {
         self.selectedAppID = identifier;
+
+        [self performSelector:@selector(checkForCalendarView)];
+
         [self.collectionView.collectionViewLayout invalidateLayout];
         [self.collectionView setContentOffset:CGPointZero animated:NO];
 
@@ -306,11 +323,12 @@ CGSize appViewSize(BOOL lockscreen) {
 %new - (BOOL)shouldShowNotificationAtIndexPath: (NSIndexPath *)indexPath {
     // if (self.recentlyClearedNotifications[[NSString stringWithFormat:@"%ld-%ld", (long)indexPath.row, (long)indexPath.section]]) return NO;
     if ([self.selectedAppID isEqualToString:@"-showAll"]) return YES;
-    NSString *identifier = @"";
+    NSString *identifier;
     @try {
-        identifier = [[self notificationRequestAtIndexPath:indexPath] sectionIdentifier];
+        NCNotificationRequest *request = [self notificationRequestAtIndexPath:indexPath];
+        identifier = request ? [request sectionIdentifier] : @"";
     }@catch (NSException *exception) {
-        CSAlertLog(@"CSC Error loading request index. ERROR: %@", exception);
+        CSLog(@"CSC Error loading request index. ERROR: %@", exception);
     }
     BOOL showAllWhenNotSelected = [prefs boolForKey:(IN_LS) ? @"showAllWhenNotSelected" : @"ncshowAllWhenNotSelected"];
 
@@ -336,10 +354,8 @@ CGSize appViewSize(BOOL lockscreen) {
 %hook NCNotificationPriorityListViewController
 
 - (void)insertNotificationRequest: (NCNotificationRequest *)request forCoalescedNotification: (id)notification {
-    if (![prefs boolForKey:@"enabled"]) {
-        %orig; return;
-    }
     %orig;
+    if (![prefs boolForKey:@"enabled"]) return;
     [(NCNotificationListViewController *) self insertOrModifyNotification:request];
 
     // if ([self.selectedAppID isEqualToString:[request sectionIdentifier]]) {
@@ -357,8 +373,24 @@ CGSize appViewSize(BOOL lockscreen) {
     [(NCNotificationListViewController *) self removeNotification:request];
 }
 
+- (CGSize)collectionView:(UICollectionView *)collection layout:(UICollectionViewLayout *)layout referenceSizeForFooterInSection:(NSInteger)section {
+    CGSize itemSize = %orig;
+    if (![prefs boolForKey:@"enabled"]) return itemSize;
+    return calendarView.hidden ? CGSizeMake(0.1, 0.1) : itemSize;
+}
+
 - (BOOL)shouldAddHintTextForNotificationViewController:(id)viewController {
     return ([prefs boolForKey:@"enabled"] && [prefs boolForKey:@"disableHintText"]) ? NO : %orig(viewController);
+}
+
+- (void)clearAllNonPersistent {
+    if ([prefs boolForKey:@"disableAutomaticDismiss"]) return;
+    %orig;
+}
+
+- (void)clearAll {
+    if ([prefs boolForKey:@"disableAutomaticDismiss"]) return;
+    %orig;
 }
 
 %end
@@ -588,4 +620,8 @@ CGSize appViewSize(BOOL lockscreen) {
 }
 
 %end
+
+%ctor {
+    dlopen("/Library/MobileSubstrate/DynamicLibraries/CalendarForLockscreen2.dylib", RTLD_LAZY);
+}
 

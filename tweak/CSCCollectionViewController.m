@@ -130,7 +130,7 @@
     if (contentWidth < collectionWidth) {
         padding = (collectionWidth - contentWidth) / 2;
     }
-    return UIEdgeInsetsMake(0, padding, 0, padding);
+    return UIEdgeInsetsMake(collectionView.bounds.size.height - (_cellSize.height + 2), padding, 0, padding);
 }
 
 #pragma mark - Misc
@@ -194,6 +194,12 @@
         }
 
         Request *request = [[Request alloc] requestWithIdentifier:identifier count:count timestamp:timestamp icon:[_iconProvider iconForBundleIdentifier:identifier]];
+        [contentTable setObject:request forKey:identifier];
+    }
+
+    if (self.showCalendarSection) {
+        identifier = @"-calendarForLockscreen";
+        Request *request = [[Request alloc] requestWithIdentifier:identifier count:1 timestamp:[NSDate date] icon:[_iconProvider iconForBundleIdentifier:identifier]];
         [contentTable setObject:request forKey:identifier];
     }
 

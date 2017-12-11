@@ -21,6 +21,7 @@
 
 @interface NCNotificationListCollectionViewFlowLayout : UICollectionViewFlowLayout
 @property(nonatomic, retain) NSDictionary *layoutInformation;
+@property (nonatomic, retain) NSMutableArray *removedIndexPaths;
 - (BOOL)isLockscreenLayout;
 - (BOOL)isConsolidationEnabledForLayout;
 @end

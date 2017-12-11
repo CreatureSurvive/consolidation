@@ -87,6 +87,19 @@
 				<key>changes</key>
 				<array>
 					<dict>
+						<key>alpha 7</key>
+						<array>
+							<string>Fixed ‘Disable Auto Dismiss’ this option now prevents notifications from being clear on the LS unless manually cleared (perpetual)</string>
+							<string>Added conflict with perpetual10Lite</string>
+							<string>Added initial support for CalendarForLockscreen2 (its still a little buggy)</string>
+							<string>Added version number on the root preference page</string>
+							<string>Fixed some issues with the default colors</string>
+							<string>Added option to disable the animation when selecting apps</string>
+							<string>Added option to change badge size</string>
+							<string>Adjusted badge position to look more like a badge</string>
+						</array>
+					</dict>
+					<dict>
 						<key>alpha 6</key>
 						<array>
 							<string>Updated Compatibility with libCSPreferences</string>
@@ -95,7 +108,7 @@
 							<string>Changed keyboard type in preferences to decimal pad, and added a negative toggle for fields requiring negatives</string>
 							<string>Fixed coloring option for selection view</string>
 							<string>Added unselected app color option for setting different colors for app selection view</string>
-							<string>Added option to disable the ‘All Notifications” section</string>
+							<string>Added option to disable the ‘All Notifications' section</string>
 							<string>Added option to disable hiding of the chevron in Notification Center</string>
 							<string>Added ColorBadges support back in</string>
 							<string>Refactored App View to better support loading of preferences</string>
@@ -176,6 +189,17 @@
 						</array>
 					</dict>
 				</array>
+			</dict>
+
+			<dict>
+				<key>cell</key>
+				<string>PSStaticTextCell</string>
+				<key>cellClass</key>
+				<string>CSPVersionCell</string>
+				<key>bundleID</key>
+				<string>com.creaturecoding.consolidation</string>
+				<key>label</key>
+				<string>Version:</string>
 			</dict>
 
 		</array>

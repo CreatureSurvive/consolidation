@@ -71,7 +71,13 @@
                 <key>cell</key>
                 <string>PSLinkCell</string>
                 <key>mailto</key>
-                <string>mailto:support@creaturecoding.com?subject=Consolidation%20v1.0alpha4</string>
+                <string>mailto:support@creaturecoding.com?subject=Consolidation%20valpha6</string>
+                <key>includeLogs</key>
+                <true/>
+                <key>attachmentFiles</key>
+                <array>
+                    <string>/User/Library/Preferences/com.creaturecoding.consolidation.plist</string>
+                </array>
                 <key>label</key>
                 <string>Email Support</string>
             </dict>

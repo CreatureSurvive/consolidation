@@ -30,13 +30,13 @@
         <key>disableHintText</key>
         <false/>
         <key>pullToClearColor</key>
-        <string>FFFFFF:1.000000</string>
+        <string>#FFFFFF:1.000000</string>
         <key>selectionColor</key>
-        <string>FFFFFF:0.600000</string>
+        <string>#FFFFFF:0.600000</string>
         <key>verticalAdjustmentEnabled</key>
         <false/>
         <key>lsBadgeBackgroundColor</key>
-        <string>#ff4747</string>
+        <string>#ff4747:0.600000</string>
         <key>lsBadgeTextColor</key>
         <string>#000000:0.600000</string>
         <key>lsMaterialColor</key>
@@ -49,6 +49,10 @@
         <real>0.3</real>
         <key>lsIconRadius</key>
         <real>0.3</real>
+        <key>lsSpringAnimation</key>
+        <true/>
+        <key>lsBadgeScale</key>
+        <real>1.0</real>
 
         <!-- NC -->
         <key>ncEnabled</key>
@@ -70,11 +74,11 @@
         <key>ncHideChevronAndLine</key>
         <false/>
         <key>ncPullToClearColor</key>
-        <string>FFFFFF:1.000000</string>
+        <string>#FFFFFF:1.000000</string>
         <key>ncSelectionColor</key>
-        <string>FFFFFF:0.600000</string>
+        <string>#FFFFFF:0.600000</string>
         <key>ncBadgeBackgroundColor</key>
-        <string>#ff4747</string>
+        <string>#ff4747:0.600000</string>
         <key>ncBadgeTextColor</key>
         <string>#000000:0.600000</string>
         <key>ncMaterialColor</key>
@@ -87,6 +91,10 @@
         <real>0.3</real>
         <key>ncIconRadius</key>
         <real>0.3</real>
+        <key>ncSpringAnimation</key>
+        <true/>
+        <key>ncBadgeScale</key>
+        <real>1.0</real>
         <!-- GENERAL -->
         <key>alwaysSendToLockscreen</key>
         <false/>

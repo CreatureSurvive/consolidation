@@ -1,4 +1,3 @@
-#import <UIColor+ColorFromHex.h>
 #import "CSCCollectionViewCell.h"
 #import "CSCProvider.h"
 #import "colorbadges_api.h"
@@ -28,7 +27,9 @@
     double _badgeRadius;
     double _materialRadius;
     double _iconRadius;
+    double _badgeScale;
     BOOL _colorbadgesEnabled;
+    BOOL _springAnimation;
     Class _colorbadges;
     Class _backdropClass;
 }
@@ -91,6 +92,10 @@
 
 #pragma mark - UIColectionViewCell
 
+- (BOOL)isSelectedCell {
+    return _springAnimation ? self.selected : NO;
+}
+
 - (void)setSelected:(BOOL)selected {
     [super setSelected:selected];
     [self applyChangesAnimated:self.visible];
@@ -98,10 +103,10 @@
 
 - (void)applyChangesAnimated:(BOOL)animated {
     void (^changes)() = ^void () {
+        [self updateSelectionColor];
         [self updateIconFrame];
         [self updateBadgeFrame];
         [self updateBadgeFont];
-        [self updateSelectionColor];
     };
     if (animated) {
         [UIView animateWithDuration:0.6 delay:0 usingSpringWithDamping:0.5 initialSpringVelocity:0.05 options:UIViewAnimationOptionAllowUserInteraction animations:^{ changes(); } completion:^(BOOL finished) {
@@ -127,17 +132,17 @@
 #pragma mark - Apply Values For State
 
 - (void)updateIconFrame {
-    self.iconView.frame = [self iconRectforCellState:self.selected];
+    self.iconView.frame = [self iconRectforCellState:self.isSelectedCell];
     self.iconView.layer.cornerRadius = self.iconView.frame.size.width * _iconRadius;
 }
 
 - (void)updateBadgeFrame {
-    self.label.frame = [self badgeRectForCellState:self.selected];
+    self.label.frame = [self badgeRectForCellState:self.isSelectedCell];
     self.label.layer.cornerRadius = self.label.frame.size.height * _badgeRadius;
 }
 
 - (void)updateBadgeFont {
-    self.label.font = [UIFont systemFontOfSize:(self.selected || _style) ? 12.0 : 9.0];
+    self.label.font = [UIFont systemFontOfSize:((self.isSelectedCell || _style) ? 13.0 : 11.0) * _badgeScale];
 }
 
 - (void)updateSelectionColor {
@@ -181,16 +186,17 @@
 }
 
 - (CGRect)badgeRectForCellState:(BOOL)selected {
+    double sizeMultiplier = 5 * _badgeScale, baseSizeBelow = 14 * _badgeScale, baseSizeCorner = 12 * _badgeScale;
     CGRect iconRect = [self iconRectforCellState:selected];
     UIEdgeInsets insets = selected ? self.selectedInsets : self.insets;
-    CGFloat extraWidth = self.label.text.length ? (self.label.text.length - 1) * 4 : 0;
-    CGSize size = (selected || _style) ? CGSizeMake((16 + extraWidth), 16) : CGSizeMake(10 + extraWidth, 12);
+    CGFloat extraWidth = self.label.text.length ? (self.label.text.length - 1) * sizeMultiplier : 0;
+    CGSize size = (selected || _style) ? CGSizeMake((baseSizeBelow + extraWidth), baseSizeBelow) : CGSizeMake(baseSizeCorner + extraWidth, baseSizeCorner);
 
     CGRect badgeRect;
     if (_style) {
         badgeRect = CGRectMake(CGRectGetMidX(self.bounds) - (size.width / 2), CGRectGetMaxY(self.bounds) - (size.height + 3), size.width, size.height);
     } else {
-        badgeRect = CGRectMake(iconRect.size.width - size.width + insets.right - selected, insets.top, size.width, size.height);
+        badgeRect = CGRectMake(iconRect.size.width - (size.width / 1.3)+ insets.right - selected, insets.top - (size.height / 4.5), size.width, size.height);
     }
     return badgeRect;
 }
@@ -201,6 +207,7 @@
 }
 
 - (void)fetchAndApplySettings {
+    _springAnimation = [prefs boolForKey:self.collectionStyle ? @"ncSpringAnimation" : @"lsSpringAnimation"];
     _badgeBackgroundColor = [prefs colorForKey:self.collectionStyle ? @"ncBadgeBackgroundColor" : @"lsBadgeBackgroundColor"];
     _badgeTextColor = [prefs colorForKey:self.collectionStyle ? @"ncBadgeTextColor" : @"lsBadgeTextColor"];
     _materialColor = [prefs colorForKey:self.collectionStyle ? @"ncMaterialColor" : @"lsMaterialColor"];
@@ -208,6 +215,7 @@
     _badgeRadius = [prefs doubleForKey:self.collectionStyle ? @"ncBadgeRadius" : @"lsBadgeRadius"];
     _materialRadius = [prefs doubleForKey:self.collectionStyle ? @"ncMaterialRadius" : @"lsMaterialRadius"];
     _iconRadius = [prefs doubleForKey:self.collectionStyle ? @"ncIconRadius" : @"lsIconRadius"];
+    _badgeScale = [prefs doubleForKey:self.collectionStyle ? @"ncBadgeScale" : @"lsBadgeScale"];
 
     // ___ BACKDROP ___________________________________________________________________
     [self updateSelectionColor];

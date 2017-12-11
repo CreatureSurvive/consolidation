@@ -164,6 +164,48 @@
 
             <dict>
                 <key>cell</key>
+                <string>PSEditTextCell</string>
+                <key>cellClass</key>
+                <string>CSPValueCell</string>
+                <key>detail</key>
+                <string>PSDetailController</string>
+                <key>height</key>
+                <string>30</string>
+                <key>isDecimalPad</key>
+                <true/>
+                <key>key</key>
+                <string>ncBadgeScale</string>
+                <key>label</key>
+                <string>Badge Scale (1 - 2)</string>
+                <key>placeholder</key>
+                <string>1</string>
+                <key>seporatorHidden</key>
+                <true/>
+                <key>PostNotification</key>
+                <string>com.creaturecoding.consolidation.prefschanged</string>
+                <key>defaults</key>
+                <string>com.creaturecoding.consolidation</string>
+            </dict>
+
+            <dict>
+                <key>cell</key>
+                <string>PSSliderCell</string>
+                <key>isContinuous</key>
+                <true/>
+                <key>key</key>
+                <string>ncBadgeScale</string>
+                <key>max</key>
+                <real>2</real>
+                <key>min</key>
+                <real>1</real>
+                <key>PostNotification</key>
+                <string>com.creaturecoding.consolidation.prefschanged</string>
+                <key>defaults</key>
+                <string>com.creaturecoding.consolidation</string>
+            </dict>
+
+            <dict>
+                <key>cell</key>
                 <string>PSGroupCell</string>
                 <key>label</key>
                 <string>Selection Cell</string>
@@ -353,6 +395,21 @@
 
             <dict>
                 <key>cell</key>
+                <string>PSSwitchCell</string>
+                <key>label</key>
+                <string>Selection Animation</string>
+                <key>key</key>
+                <string>ncSpringAnimation</string>
+                <key>sublabel</key>
+                <string>Animate app selection view</string>
+                <key>PostNotification</key>
+                <string>com.creaturecoding.consolidation.prefschanged</string>
+                <key>defaults</key>
+                <string>com.creaturecoding.consolidation</string>
+            </dict>
+
+            <dict>
+                <key>cell</key>
                 <string>PSLinkListCell</string>
                 <key>detail</key>
                 <string>CSListItemsController</string>
@@ -391,7 +448,7 @@
                 <key>key</key>
                 <string>ncHideChevronAndLine</string>
                 <key>sublabel</key>
-                <string>Removes the seproator and chevron in NC</string>
+                <string>Removes the separator and chevron in NC</string>
                 <key>PostNotification</key>
                 <string>com.creaturecoding.consolidation.prefschanged</string>
                 <key>defaults</key>
