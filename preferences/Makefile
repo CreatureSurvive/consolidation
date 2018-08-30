@@ -1,4 +1,5 @@
 include $(THEOS)/makefiles/common.mk
+GO_EASY_ON_ME=1
 
 BUNDLE_NAME = Consolidation
 Consolidation_FILES = CSCPreferenceController.m

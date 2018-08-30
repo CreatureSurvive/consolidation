@@ -150,7 +150,7 @@
         NCMaterialView *materialBackdrop = (NCMaterialView *)self.backdrop;
         [materialBackdrop _setSubviewsContinuousCornerRadius:self.bounds.size.width * _materialRadius];
         [[(_UIBackdropView *)[materialBackdrop valueForKey:@"_backdropView"] colorTintView] setBackgroundColor:[self.selected ? _materialColor : _materialColorUnselected colorWithAlphaComponent:1]];
-        materialBackdrop.alpha = [self.selected ? _materialColor : _materialColorUnselected alpha];
+        materialBackdrop.alpha = [self.selected ? _materialColor : _materialColorUnselected csp_alpha];
     } else {
         self.backdrop.layer.cornerRadius = [self iconRectforCellState:self.selected].size.width * _materialRadius;
         self.backdrop.backgroundColor = self.selected ? _materialColor : _materialColorUnselected;

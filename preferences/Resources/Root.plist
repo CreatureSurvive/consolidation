@@ -87,6 +87,14 @@
 				<key>changes</key>
 				<array>
 					<dict>
+						<key>alpha 8</key>
+						<array>
+							<string>Fixed support for StatusPeek</string>
+							<string>Fixed decimal formatting in preferences for non english languages</string>
+							<string>Fixed a crash that would occur at random times when receiving notifications</string>
+						</array>
+					</dict>
+					<dict>
 						<key>alpha 7</key>
 						<array>
 							<string>Fixed ‘Disable Auto Dismiss’ this option now prevents notifications from being clear on the LS unless manually cleared (perpetual)</string>

@@ -1,6 +1,5 @@
 #import <UIKit/UIKit.h>
 #include <dlfcn.h>
-#include <AppList/AppList.h>
 #import "substrate.h"
 #import "Headers.h"
 #import "PHPullToClearView.h"
@@ -487,7 +486,7 @@ CGSize appViewSize(BOOL lockscreen) {
 
 - (void)_layoutPageControl {
     %orig;
-    self._pageControl.hidden = ([prefs boolForKey:@"ncEnabled"] && [prefs boolForKey:@"ncHideChevronAndLine"]);
+    self._pageControl.hidden = self._pageControl.hidden ? : ([prefs boolForKey:@"ncEnabled"] && [prefs boolForKey:@"ncHideChevronAndLine"]);
 }
 
 - (void)setContentBottomInset:(double)inset {
@@ -501,6 +500,7 @@ CGSize appViewSize(BOOL lockscreen) {
 
 -(void)_loadGrabberContentView {
     if ([prefs boolForKey:@"ncEnabled"] && [prefs boolForKey:@"ncHideChevronAndLine"]) return;
+    %orig;
 }
 
 %end

@@ -146,6 +146,10 @@
             <dict>
                 <key>cell</key>
                 <string>PSEditTextCell</string>
+                <key>cellClass</key>
+                <string>CSPValueCell</string>
+                <key>formatsDecimals</key>
+                <true/>
                 <key>isDecimalPad</key>
                 <true/>
                 <key>detail</key>
@@ -167,6 +171,8 @@
                 <string>PSEditTextCell</string>
                 <key>cellClass</key>
                 <string>CSPValueCell</string>
+                <key>formatsDecimals</key>
+                <true/>
                 <key>detail</key>
                 <string>PSDetailController</string>
                 <key>height</key>
@@ -279,6 +285,10 @@
             <dict>
                 <key>cell</key>
                 <string>PSEditTextCell</string>
+                <key>cellClass</key>
+                <string>CSPValueCell</string>
+                <key>formatsDecimals</key>
+                <true/>
                 <key>isDecimalPad</key>
                 <true/>
                 <key>detail</key>
@@ -298,6 +308,10 @@
             <dict>
                 <key>cell</key>
                 <string>PSEditTextCell</string>
+                <key>cellClass</key>
+                <string>CSPValueCell</string>
+                <key>formatsDecimals</key>
+                <true/>
                 <key>isDecimalPad</key>
                 <true/>
                 <key>detail</key>

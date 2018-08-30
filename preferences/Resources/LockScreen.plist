@@ -142,6 +142,10 @@
             <dict>
                 <key>cell</key>
                 <string>PSEditTextCell</string>
+                <key>cellClass</key>
+                <string>CSPValueCell</string>
+                <key>formatsDecimals</key>
+                <true/>
                 <key>isDecimalPad</key>
                 <true/>
                 <key>detail</key>
@@ -163,6 +167,8 @@
                 <string>PSEditTextCell</string>
                 <key>cellClass</key>
                 <string>CSPValueCell</string>
+                <key>formatsDecimals</key>
+                <true/>
                 <key>detail</key>
                 <string>PSDetailController</string>
                 <key>height</key>
@@ -273,6 +279,10 @@
             <dict>
                 <key>cell</key>
                 <string>PSEditTextCell</string>
+                <key>cellClass</key>
+                <string>CSPValueCell</string>
+                <key>formatsDecimals</key>
+                <true/>
                 <key>isDecimalPad</key>
                 <true/>
                 <key>detail</key>
@@ -292,6 +302,10 @@
             <dict>
                 <key>cell</key>
                 <string>PSEditTextCell</string>
+                <key>cellClass</key>
+                <string>CSPValueCell</string>
+                <key>formatsDecimals</key>
+                <true/>
                 <key>isDecimalPad</key>
                 <true/>
                 <key>detail</key>
@@ -376,7 +390,13 @@
             <dict>
                 <key>cell</key>
                 <string>PSEditTextCell</string>
-                <key>isDecimalWithNegetive</key>
+                <key>cellClass</key>
+                <string>CSPValueCell</string>
+                <key>formatsDecimals</key>
+                <true/>
+                <key>isDecimalWithNegative</key>
+                <true/>
+                <key>formatsDecimals</key>
                 <true/>
                 <key>detail</key>
                 <string>PSDetailController</string>
@@ -395,7 +415,11 @@
             <dict>
                 <key>cell</key>
                 <string>PSEditTextCell</string>
-                <key>isDecimalWithNegetive</key>
+                <key>cellClass</key>
+                <string>CSPValueCell</string>
+                <key>formatsDecimals</key>
+                <true/>
+                <key>isDecimalWithNegative</key>
                 <true/>
                 <key>detail</key>
                 <string>PSDetailController</string>

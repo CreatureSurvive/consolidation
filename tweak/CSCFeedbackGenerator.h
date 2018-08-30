@@ -9,13 +9,13 @@ enum {
 };
 typedef NSUInteger FeedbackType;
 
-@interface UIFeedbackGenerator : NSObject
-- (void)prepare;
-@end
+// @interface UIFeedbackGenerator : NSObject
+// - (void)prepare;
+// @end
 
-@interface UISelectionFeedbackGenerator : UIFeedbackGenerator
-- (void)selectionChanged;
-@end
+// @interface UISelectionFeedbackGenerator : UIFeedbackGenerator
+// - (void)selectionChanged;
+// @end
 
 @interface CSCFeedbackGenerator : NSObject
 
